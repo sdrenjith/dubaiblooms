@@ -1,0 +1,519 @@
+import axios from 'axios';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { adminApi, authApi, contentApi } from '@/lib/api';
+import type { AdminUserRow, AuthUser } from '@/lib/api';
+import type { Settings } from '@/types/api';
+
+const emptySettings: Settings = {
+  siteName: '',
+  tagline: '',
+  logo: '',
+  footerText: '',
+  notifications: { enabled: true, title: '', message: '' },
+  contactInfo: { email: '', phone: '', address: '' },
+  socialLinks: { facebook: '', twitter: '', instagram: '', linkedin: '' },
+  listing: { cardsPerPage: 4 },
+  homepage: { heroAutoplayMs: 5000, categoryTiles: [], sections: [], googleReviews: [] },
+};
+
+export function AdminSettingsPage() {
+  const token = localStorage.getItem('adminToken');
+  const [form, setForm] = useState<Settings>(emptySettings);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [sessionUser, setSessionUser] = useState<AuthUser | null>(null);
+  const [inviteName, setInviteName] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [invitePassword, setInvitePassword] = useState('');
+  const [invitePassword2, setInvitePassword2] = useState('');
+  const [inviteRole, setInviteRole] = useState<'admin' | 'editor'>('admin');
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
+  const [inviteMessage, setInviteMessage] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+
+  const [profileName, setProfileName] = useState('');
+  const [profileCurrentPassword, setProfileCurrentPassword] = useState('');
+  const [profileNewPassword, setProfileNewPassword] = useState('');
+  const [profileConfirmPassword, setProfileConfirmPassword] = useState('');
+  const [profileSubmitting, setProfileSubmitting] = useState(false);
+  const [profileMessage, setProfileMessage] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  const [teamUsers, setTeamUsers] = useState<AdminUserRow[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState<string | null>(null);
+
+  const loadTeamUsers = useCallback(async () => {
+    if (!token) {
+      return;
+    }
+    setUsersLoading(true);
+    setUsersError(null);
+    try {
+      const list = await authApi.listUsers(token);
+      setTeamUsers(list);
+    } catch {
+      setUsersError('Unable to load users. You may need administrator access.');
+      setTeamUsers([]);
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const settings = await contentApi.settings();
+        setForm((settings || emptySettings) as Settings);
+      } catch {
+        setError('Unable to load settings.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    void load();
+  }, []);
+
+  useEffect(() => {
+    if (!token) {
+      setSessionUser(null);
+      return;
+    }
+    const loadSession = async () => {
+      try {
+        const user = await authApi.getMe(token);
+        setSessionUser(user);
+      } catch {
+        setSessionUser(null);
+      }
+    };
+    void loadSession();
+  }, [token]);
+
+  useEffect(() => {
+    if (sessionUser) {
+      setProfileName(sessionUser.name);
+    }
+  }, [sessionUser]);
+
+  useEffect(() => {
+    if (!token || sessionUser?.role !== 'admin') {
+      return;
+    }
+    void loadTeamUsers();
+  }, [token, sessionUser?.role, loadTeamUsers]);
+
+  if (!token) {
+    return null;
+  }
+
+  const updateField = (key: keyof Settings, value: unknown) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSaving(true);
+    setMessage(null);
+    setError(null);
+    try {
+      const updated = await adminApi.updateSettings(form, token);
+      setForm(updated);
+      setMessage('Settings saved successfully.');
+    } catch {
+      setError('Failed to save settings. Please verify admin token/session.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onInviteSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!token) {
+      return;
+    }
+    setInviteMessage(null);
+    setInviteError(null);
+    if (invitePassword.length < 6) {
+      setInviteError('Password must be at least 6 characters.');
+      return;
+    }
+    if (invitePassword !== invitePassword2) {
+      setInviteError('Passwords do not match.');
+      return;
+    }
+    setInviteSubmitting(true);
+    try {
+      const created = await adminApi.registerUser(
+        {
+          name: inviteName.trim(),
+          email: inviteEmail.trim().toLowerCase(),
+          password: invitePassword,
+          role: inviteRole,
+        },
+        token
+      );
+      setInviteMessage(`Account created for ${created.email} (${created.role}). They can sign in immediately.`);
+      setInviteName('');
+      setInviteEmail('');
+      setInvitePassword('');
+      setInvitePassword2('');
+      setInviteRole('admin');
+      void loadTeamUsers();
+    } catch (err) {
+      const msg =
+        axios.isAxiosError(err) && err.response?.data && typeof err.response.data.message === 'string'
+          ? err.response.data.message
+          : 'Could not create user. You may need to log in again as an administrator.';
+      setInviteError(msg);
+    } finally {
+      setInviteSubmitting(false);
+    }
+  };
+
+  const onProfileSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!token || !sessionUser) {
+      return;
+    }
+    setProfileMessage(null);
+    setProfileError(null);
+    const nameTrim = profileName.trim();
+    if (profileNewPassword) {
+      if (profileNewPassword.length < 6) {
+        setProfileError('New password must be at least 6 characters.');
+        return;
+      }
+      if (profileNewPassword !== profileConfirmPassword) {
+        setProfileError('New password and confirmation do not match.');
+        return;
+      }
+      if (!profileCurrentPassword) {
+        setProfileError('Enter your current password to set a new one.');
+        return;
+      }
+    }
+    const payload: { name?: string; currentPassword?: string; newPassword?: string } = {};
+    if (nameTrim !== sessionUser.name) {
+      payload.name = nameTrim;
+    }
+    if (profileNewPassword) {
+      payload.currentPassword = profileCurrentPassword;
+      payload.newPassword = profileNewPassword;
+    }
+    if (Object.keys(payload).length === 0) {
+      setProfileError('No changes to save.');
+      return;
+    }
+    if (!nameTrim) {
+      setProfileError('Display name cannot be empty.');
+      return;
+    }
+    setProfileSubmitting(true);
+    try {
+      const user = await authApi.updateMyProfile(token, payload);
+      setSessionUser(user);
+      setProfileName(user.name);
+      setProfileMessage('Your profile was updated.');
+      setProfileCurrentPassword('');
+      setProfileNewPassword('');
+      setProfileConfirmPassword('');
+    } catch (err) {
+      const msg =
+        axios.isAxiosError(err) && err.response?.data && typeof err.response.data.message === 'string'
+          ? err.response.data.message
+          : 'Could not update profile.';
+      setProfileError(msg);
+    } finally {
+      setProfileSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="admin-app-panel">
+        <div className="admin-screen-intro">
+          <h1 className="admin-screen-title">Site settings</h1>
+          <p className="lede admin-screen-lede">
+            Global branding, contact, social links, and alerts. Newsletter subscribers have their own screen in the
+            sidebar. Use “Site pages” to edit the home layout or each category desk.
+          </p>
+        </div>
+        {loading ? <div className="status-banner">Loading settings...</div> : null}
+        {message ? <div className="status-banner">{message}</div> : null}
+        {error ? <div className="status-banner">{error}</div> : null}
+
+        {sessionUser ? (
+          <section className="admin-card admin-card-wide" style={{ marginBottom: '1.5rem' }}>
+            <h2>Your account</h2>
+            <p className="lede admin-hint">
+              Signed in as <strong>{sessionUser.email}</strong> ({sessionUser.role}). Update your display name or password below.
+              Email cannot be changed here.
+            </p>
+            {profileMessage ? <div className="status-banner">{profileMessage}</div> : null}
+            {profileError ? <div className="status-banner">{profileError}</div> : null}
+            <form className="admin-form-grid" onSubmit={onProfileSubmit} style={{ marginTop: '0.75rem' }}>
+              <label>
+                Display name
+                <input
+                  autoComplete="name"
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  required
+                />
+              </label>
+              <label>
+                Current password (required only to change password)
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  value={profileCurrentPassword}
+                  onChange={(e) => setProfileCurrentPassword(e.target.value)}
+                />
+              </label>
+              <label>
+                New password
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={profileNewPassword}
+                  onChange={(e) => setProfileNewPassword(e.target.value)}
+                  minLength={6}
+                  placeholder="Leave blank to keep current password"
+                />
+              </label>
+              <label>
+                Confirm new password
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={profileConfirmPassword}
+                  onChange={(e) => setProfileConfirmPassword(e.target.value)}
+                  minLength={6}
+                />
+              </label>
+              <button className="admin-save" type="submit" disabled={profileSubmitting}>
+                {profileSubmitting ? 'Saving…' : 'Save profile'}
+              </button>
+            </form>
+          </section>
+        ) : null}
+
+        {sessionUser?.role === 'admin' ? (
+          <section className="admin-card admin-card-wide" style={{ marginBottom: '1.5rem' }}>
+            <h2>Invite team member</h2>
+            <p className="lede admin-hint">
+              Create another sign-in with administrator access, or an editor account. New users can log in from the same admin login page.
+            </p>
+            {inviteMessage ? <div className="status-banner">{inviteMessage}</div> : null}
+            {inviteError ? <div className="status-banner">{inviteError}</div> : null}
+            <form className="admin-form-grid" onSubmit={onInviteSubmit} style={{ marginTop: '0.75rem' }}>
+              <label>
+                Full name
+                <input
+                  autoComplete="name"
+                  value={inviteName}
+                  onChange={(e) => setInviteName(e.target.value)}
+                  required
+                />
+              </label>
+              <label>
+                Email
+                <input
+                  type="email"
+                  autoComplete="off"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  required
+                />
+              </label>
+              <label>
+                Role
+                <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as 'admin' | 'editor')}>
+                  <option value="admin">Administrator (full access)</option>
+                  <option value="editor">Editor</option>
+                </select>
+              </label>
+              <label>
+                Temporary password
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={invitePassword}
+                  onChange={(e) => setInvitePassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </label>
+              <label>
+                Confirm password
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={invitePassword2}
+                  onChange={(e) => setInvitePassword2(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </label>
+              <button className="admin-save" type="submit" disabled={inviteSubmitting}>
+                {inviteSubmitting ? 'Creating…' : 'Create account'}
+              </button>
+            </form>
+          </section>
+        ) : null}
+
+        {sessionUser?.role === 'admin' ? (
+          <section className="admin-card admin-card-wide" style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0 }}>Team accounts</h2>
+              <button className="button-link" type="button" onClick={() => void loadTeamUsers()} disabled={usersLoading}>
+                {usersLoading ? 'Refreshing…' : 'Refresh list'}
+              </button>
+            </div>
+            <p className="lede admin-hint">All users who can sign in to the admin area.</p>
+            {usersError ? <div className="status-banner">{usersError}</div> : null}
+            {usersLoading && teamUsers.length === 0 ? <div className="status-banner">Loading users…</div> : null}
+            {teamUsers.length > 0 ? (
+              <div style={{ overflowX: 'auto', marginTop: '0.75rem' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', borderBottom: '1px solid #c3c4c7' }}>
+                      <th style={{ padding: '0.5rem 0.75rem 0.5rem 0' }}>Name</th>
+                      <th style={{ padding: '0.5rem 0.75rem' }}>Email</th>
+                      <th style={{ padding: '0.5rem 0.75rem' }}>Role</th>
+                      <th style={{ padding: '0.5rem 0 0.5rem 0.75rem' }}>Joined</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teamUsers.map((u) => (
+                      <tr key={u.id} style={{ borderBottom: '1px solid #e8e8e8' }}>
+                        <td style={{ padding: '0.55rem 0.75rem 0.55rem 0' }}>{u.name}</td>
+                        <td style={{ padding: '0.55rem 0.75rem' }}>{u.email}</td>
+                        <td style={{ padding: '0.55rem 0.75rem' }}>{u.role}</td>
+                        <td style={{ padding: '0.55rem 0 0.55rem 0.75rem', color: '#646970' }}>
+                          {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : !usersLoading && !usersError ? (
+              <p className="lede">No users returned.</p>
+            ) : null}
+          </section>
+        ) : null}
+
+        <form className="admin-form-grid" onSubmit={onSubmit}>
+          <section className="admin-card">
+            <h2>Site Identity</h2>
+            <label>
+              Site Name
+              <input value={form.siteName || ''} onChange={(e) => updateField('siteName', e.target.value)} />
+            </label>
+            <label>
+              Tagline
+              <input value={form.tagline || ''} onChange={(e) => updateField('tagline', e.target.value)} />
+            </label>
+            <label>
+              Logo URL
+              <input value={form.logo || ''} onChange={(e) => updateField('logo', e.target.value)} />
+            </label>
+            <label>
+              Footer Text
+              <input value={form.footerText || ''} onChange={(e) => updateField('footerText', e.target.value)} />
+            </label>
+          </section>
+
+          <section className="admin-card">
+            <h2>Contact</h2>
+            <label>
+              Email
+              <input
+                value={form.contactInfo?.email || ''}
+                onChange={(e) =>
+                  updateField('contactInfo', { ...(form.contactInfo || {}), email: e.target.value })
+                }
+              />
+            </label>
+            <label>
+              Phone
+              <input
+                value={form.contactInfo?.phone || ''}
+                onChange={(e) =>
+                  updateField('contactInfo', { ...(form.contactInfo || {}), phone: e.target.value })
+                }
+              />
+            </label>
+            <label>
+              Address
+              <input
+                value={form.contactInfo?.address || ''}
+                onChange={(e) =>
+                  updateField('contactInfo', { ...(form.contactInfo || {}), address: e.target.value })
+                }
+              />
+            </label>
+          </section>
+
+          <section className="admin-card">
+            <h2>Social Links</h2>
+            {(['facebook', 'twitter', 'instagram', 'linkedin'] as const).map((platform) => (
+              <label key={platform}>
+                {platform}
+                <input
+                  value={form.socialLinks?.[platform] || ''}
+                  onChange={(e) =>
+                    updateField('socialLinks', { ...(form.socialLinks || {}), [platform]: e.target.value })
+                  }
+                />
+              </label>
+            ))}
+          </section>
+
+          <section className="admin-card">
+            <h2>Notifications</h2>
+            <label>
+              Enabled
+              <select
+                value={String(form.notifications?.enabled ?? true)}
+                onChange={(e) =>
+                  updateField('notifications', {
+                    ...(form.notifications || {}),
+                    enabled: e.target.value === 'true',
+                  })
+                }
+              >
+                <option value="true">true</option>
+                <option value="false">false</option>
+              </select>
+            </label>
+            <label>
+              Title
+              <input
+                value={form.notifications?.title || ''}
+                onChange={(e) =>
+                  updateField('notifications', { ...(form.notifications || {}), title: e.target.value })
+                }
+              />
+            </label>
+            <label>
+              Message
+              <input
+                value={form.notifications?.message || ''}
+                onChange={(e) =>
+                  updateField('notifications', { ...(form.notifications || {}), message: e.target.value })
+                }
+              />
+            </label>
+          </section>
+
+          <button className="admin-save" type="submit" disabled={saving || loading}>
+            {saving ? 'Saving...' : 'Save all settings'}
+          </button>
+        </form>
+    </div>
+  );
+}

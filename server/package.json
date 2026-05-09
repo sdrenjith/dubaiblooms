@@ -7,7 +7,8 @@
     "dev": "tsx watch src/app.ts",
     "build": "tsc",
     "start": "node dist/app.js",
-    "seed": "tsx src/seed/seed.ts"
+    "seed": "tsx src/seed/seed.ts",
+    "seed:homepage": "tsx src/seed/ensureHomepageContent.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

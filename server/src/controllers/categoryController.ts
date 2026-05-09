@@ -1,13 +1,29 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import Category from '../models/Category.js';
 import Article from '../models/Article.js';
 
+function mongoErrMessage(err: unknown): string {
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return 'Server error';
+}
+
 export const getCategories = async (_req: Request, res: Response): Promise<void> => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      res.status(503).json({
+        success: false,
+        message: `Database not connected (readyState=${mongoose.connection.readyState}). Check MONGODB_URI and that MongoDB is running.`,
+      });
+      return;
+    }
     const categories = await Category.find().sort({ order: 1 }).lean();
     res.json({ success: true, data: categories });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('getCategories', error);
+    res.status(500).json({ success: false, message: mongoErrMessage(error) });
   }
 };
 
@@ -58,14 +74,30 @@ export const createCategory = async (req: Request, res: Response): Promise<void>
 
 export const updateCategory = async (req: Request, res: Response): Promise<void> => {
   try {
-    const category = await Category.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const category = await Category.findById(req.params.id);
     if (!category) {
       res.status(404).json({ message: 'Category not found' });
       return;
     }
+    const { name, description, image, order } = req.body as {
+      name?: string;
+      description?: string;
+      image?: string;
+      order?: number;
+    };
+    if (typeof name === 'string' && name.trim()) {
+      category.name = name.trim();
+    }
+    if (typeof description === 'string') {
+      category.description = description;
+    }
+    if (typeof image === 'string') {
+      category.image = image;
+    }
+    if (order !== undefined && order !== null && !Number.isNaN(Number(order))) {
+      category.order = Number(order);
+    }
+    await category.save();
     res.json({ success: true, data: category });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

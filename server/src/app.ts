@@ -26,13 +26,39 @@ const PORT = process.env.PORT || 5000;
 
 // Security middleware
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
 
-// Rate limiting
+/** Allow any localhost Vite port in dev so /api calls work when CLIENT_URL is set to one port but dev runs on another (e.g. 5176). */
+const corsOrigin =
+  process.env.NODE_ENV === 'production'
+    ? process.env.CLIENT_URL || true
+    : (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
+        if (!origin) {
+          cb(null, true);
+          return;
+        }
+        const configured = process.env.CLIENT_URL?.trim();
+        if (configured && origin === configured) {
+          cb(null, true);
+          return;
+        }
+        if (/^https?:\/\/localhost(:\d+)?$/i.test(origin) || /^https?:\/\/127\.0\.0\.1(:\d+)?$/i.test(origin)) {
+          cb(null, true);
+          return;
+        }
+        cb(null, false);
+      };
+
+app.use(cors({ origin: corsOrigin, credentials: true }));
+
+// Rate limiting — 200/15min was too low: one public page can issue several reads (layout + page).
+const apiRateLimitMax = Number(process.env.API_RATE_LIMIT_MAX);
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200,
+  max: Number.isFinite(apiRateLimitMax) && apiRateLimitMax > 0 ? apiRateLimitMax : 3000,
   message: { message: 'Too many requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV !== 'production',
 });
 app.use('/api/', limiter);
 

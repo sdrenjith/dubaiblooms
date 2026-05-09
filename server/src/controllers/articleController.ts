@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Article from '../models/Article.js';
+import Settings from '../models/Settings.js';
 import { AuthRequest } from '../middleware/auth.js';
 
 export const getArticles = async (req: Request, res: Response): Promise<void> => {
@@ -15,7 +16,7 @@ export const getArticles = async (req: Request, res: Response): Promise<void> =>
 
     const [articles, total] = await Promise.all([
       Article.find(filter)
-        .populate('category', 'name slug')
+        .populate('category', 'name slug image')
         .populate('author', 'name')
         .sort({ publishedAt: -1 })
         .skip(skip)
@@ -37,10 +38,10 @@ export const getArticles = async (req: Request, res: Response): Promise<void> =>
 export const getFeaturedArticles = async (_req: Request, res: Response): Promise<void> => {
   try {
     const articles = await Article.find({ isPublished: true, isFeatured: true })
-      .populate('category', 'name slug')
+      .populate('category', 'name slug image')
       .populate('author', 'name')
       .sort({ publishedAt: -1 })
-      .limit(6)
+      .limit(14)
       .lean();
 
     res.json({ success: true, data: articles });
@@ -56,7 +57,7 @@ export const getArticleBySlug = async (req: Request, res: Response): Promise<voi
       { $inc: { views: 1 } },
       { new: true }
     )
-      .populate('category', 'name slug')
+      .populate('category', 'name slug image')
       .populate('author', 'name');
 
     if (!article) {
@@ -64,15 +65,17 @@ export const getArticleBySlug = async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    // Get related articles
+    const settings = await Settings.findOne().lean();
+    const relatedLimit = Math.min(24, Math.max(2, settings?.listing?.cardsPerPage ?? 4));
+
     const related = await Article.find({
       category: article.category._id,
       _id: { $ne: article._id },
       isPublished: true,
     })
-      .populate('category', 'name slug')
+      .populate('category', 'name slug image')
       .sort({ publishedAt: -1 })
-      .limit(4)
+      .limit(relatedLimit)
       .lean();
 
     res.json({ success: true, data: { article, related } });
@@ -98,7 +101,7 @@ export const getArticlesByCategory = async (req: Request, res: Response): Promis
     const filter = { category: category._id, isPublished: true };
     const [articles, total] = await Promise.all([
       Article.find(filter)
-        .populate('category', 'name slug')
+        .populate('category', 'name slug image')
         .populate('author', 'name')
         .sort({ publishedAt: -1 })
         .skip(skip)
@@ -133,7 +136,7 @@ export const searchArticles = async (req: Request, res: Response): Promise<void>
         { tags: { $in: [new RegExp(q, 'i')] } },
       ],
     })
-      .populate('category', 'name slug')
+      .populate('category', 'name slug image')
       .populate('author', 'name')
       .sort({ publishedAt: -1 })
       .limit(20)
@@ -149,7 +152,7 @@ export const searchArticles = async (req: Request, res: Response): Promise<void>
 export const createArticle = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const article = await Article.create({ ...req.body, author: req.user!._id });
-    await article.populate('category', 'name slug');
+    await article.populate('category', 'name slug image');
     await article.populate('author', 'name');
     res.status(201).json({ success: true, data: article });
   } catch (error: any) {
@@ -167,7 +170,7 @@ export const updateArticle = async (req: AuthRequest, res: Response): Promise<vo
       new: true,
       runValidators: true,
     })
-      .populate('category', 'name slug')
+      .populate('category', 'name slug image')
       .populate('author', 'name');
 
     if (!article) {
@@ -202,7 +205,7 @@ export const getAllArticlesAdmin = async (req: AuthRequest, res: Response): Prom
 
     const [articles, total] = await Promise.all([
       Article.find()
-        .populate('category', 'name slug')
+        .populate('category', 'name slug image')
         .populate('author', 'name')
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -234,7 +237,7 @@ export const getDashboardStats = async (_req: AuthRequest, res: Response): Promi
       ]);
 
     const recentArticles = await Article.find()
-      .populate('category', 'name slug')
+      .populate('category', 'name slug image')
       .populate('author', 'name')
       .sort({ createdAt: -1 })
       .limit(5)

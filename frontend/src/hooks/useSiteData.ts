@@ -8,6 +8,22 @@ interface SiteDataState {
   loading: boolean;
 }
 
+type SiteDataBundle = { settings: Settings | null; categories: Category[] };
+
+let siteDataInflight: Promise<SiteDataBundle> | null = null;
+
+function loadSiteDataOnce(): Promise<SiteDataBundle> {
+  if (!siteDataInflight) {
+    siteDataInflight = Promise.all([contentApi.settings(), contentApi.categories()])
+      .then(([settings, categories]) => ({ settings, categories }))
+      .catch(() => ({ settings: null, categories: [] }))
+      .finally(() => {
+        siteDataInflight = null;
+      });
+  }
+  return siteDataInflight;
+}
+
 export function useSiteData(): SiteDataState {
   const [state, setState] = useState<SiteDataState>({
     settings: null,
@@ -18,20 +34,12 @@ export function useSiteData(): SiteDataState {
   useEffect(() => {
     let isMounted = true;
 
-    const fetchData = async () => {
-      try {
-        const [settings, categories] = await Promise.all([contentApi.settings(), contentApi.categories()]);
-        if (isMounted) {
-          setState({ settings, categories, loading: false });
-        }
-      } catch {
-        if (isMounted) {
-          setState({ settings: null, categories: [], loading: false });
-        }
+    void (async () => {
+      const { settings, categories } = await loadSiteDataOnce();
+      if (isMounted) {
+        setState({ settings, categories, loading: false });
       }
-    };
-
-    fetchData();
+    })();
 
     return () => {
       isMounted = false;
