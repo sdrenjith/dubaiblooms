@@ -49,6 +49,30 @@
   word-break: break-all;
 }
 
+.cardNavBadge {
+  margin: 0.35rem 0 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(185, 146, 63, 0.95);
+}
+
+.checkboxLabel {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-weight: 600 !important;
+  font-size: 0.82rem !important;
+  color: #1f2430 !important;
+}
+
+.checkboxLabel input[type='checkbox'] {
+  flex-shrink: 0;
+}
+
 .fieldGrid {
   display: grid;
   grid-template-columns: 1fr;

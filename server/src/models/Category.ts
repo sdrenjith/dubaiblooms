@@ -6,6 +6,8 @@ export interface ICategory extends Document {
   description: string;
   image: string;
   order: number;
+  /** When false, hide from site header/footer category links. Omitted on old rows behaves as shown until saved. */
+  showInMainMenu?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -17,6 +19,7 @@ const categorySchema = new Schema<ICategory>(
     description: { type: String, default: '' },
     image: { type: String, default: '' },
     order: { type: Number, default: 0 },
+    showInMainMenu: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

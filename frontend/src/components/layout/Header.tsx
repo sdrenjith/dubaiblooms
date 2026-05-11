@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { contentApi } from '@/lib/api';
 import type { Article } from '@/types/api';
 import { useSiteData } from '@/hooks/useSiteData';
+import { categoryVisibleInMainMenu } from '@/lib/categoryNav';
 import styles from './Header.module.css';
 
 export function Header() {
@@ -14,7 +15,11 @@ export function Header() {
   const [articleSuggestions, setArticleSuggestions] = useState<Article[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
 
-  const navItems = useMemo(() => categories.slice(0, 6), [categories]);
+  const categoriesForNav = useMemo(
+    () => categories.filter(categoryVisibleInMainMenu),
+    [categories]
+  );
+  const navItems = useMemo(() => categoriesForNav.slice(0, 6), [categoriesForNav]);
   const siteName = settings?.siteName || 'Dubai Blooms';
   const headerBar = settings?.homepage?.header;
   const utilityLeft = headerBar?.topBarLeft?.trim() || 'EST. 2026 • DUBAI, UAE';
@@ -28,10 +33,12 @@ export function Header() {
 
   const filteredCategorySuggestions = useMemo(() => {
     if (!queryText) {
-      return categories.slice(0, 5);
+      return categoriesForNav.slice(0, 5);
     }
-    return categories.filter((category) => category.name.toLowerCase().includes(queryText)).slice(0, 5);
-  }, [categories, queryText]);
+    return categoriesForNav
+      .filter((category) => category.name.toLowerCase().includes(queryText))
+      .slice(0, 5);
+  }, [categoriesForNav, queryText]);
 
   const filteredTileSuggestions = useMemo(() => {
     if (!queryText) {

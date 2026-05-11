@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { contentApi } from '@/lib/api';
 import styles from './Footer.module.css';
 import { useSiteData } from '@/hooks/useSiteData';
+import { categoryVisibleInMainMenu } from '@/lib/categoryNav';
 
 const DEFAULT_INSTAGRAM = 'https://www.instagram.com/dubai.blooms?igsh=MXM0bGR4ZGhhZjByNg==';
 
@@ -28,6 +29,10 @@ function mapsSearchUrl(address: string): string {
 
 export function Footer() {
   const { settings, categories } = useSiteData();
+  const categoriesForNav = useMemo(
+    () => categories.filter(categoryVisibleInMainMenu),
+    [categories]
+  );
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -176,7 +181,7 @@ export function Footer() {
             <li>
               <Link to="/">Home</Link>
             </li>
-            {categories.slice(0, 4).map((category) => (
+            {categoriesForNav.slice(0, 4).map((category) => (
               <li key={category._id}>
                 <Link to={`/category/${category.slug}`}>{category.name}</Link>
               </li>

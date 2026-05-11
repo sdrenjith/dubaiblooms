@@ -13,12 +13,12 @@ function editorialHero(photoId: string): string {
 }
 
 const categories = [
-  { name: 'News', slug: 'news', description: 'Latest news and updates from Dubai', order: 1 },
-  { name: 'Things To Do', slug: 'things-to-do', description: 'Best activities and experiences in Dubai', order: 2 },
-  { name: 'Food & Drink', slug: 'food-drink', description: 'Restaurants, cafes, and culinary experiences', order: 3 },
-  { name: 'Lifestyle', slug: 'lifestyle', description: 'Fashion, wellness, and living in Dubai', order: 4 },
-  { name: 'Culture', slug: 'culture', description: 'Arts, heritage, and cultural events', order: 5 },
-  { name: 'Travel', slug: 'travel', description: 'Travel guides and destination highlights', order: 6 },
+  { name: 'News', slug: 'news', description: 'Latest news and updates from Dubai', order: 1, showInMainMenu: true },
+  { name: 'Things To Do', slug: 'things-to-do', description: 'Best activities and experiences in Dubai', order: 2, showInMainMenu: true },
+  { name: 'Food & Drink', slug: 'food-drink', description: 'Restaurants, cafes, and culinary experiences', order: 3, showInMainMenu: true },
+  { name: 'Lifestyle', slug: 'lifestyle', description: 'Fashion, wellness, and living in Dubai', order: 4, showInMainMenu: true },
+  { name: 'Culture', slug: 'culture', description: 'Arts, heritage, and cultural events', order: 5, showInMainMenu: true },
+  { name: 'Travel', slug: 'travel', description: 'Travel guides and destination highlights', order: 6, showInMainMenu: true },
 ];
 
 const articleTemplates = [

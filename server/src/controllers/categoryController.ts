@@ -3,6 +3,34 @@ import mongoose from 'mongoose';
 import Category from '../models/Category.js';
 import Article from '../models/Article.js';
 
+/** Parse checkbox / JSON booleans; when key absent, caller should not mutate. */
+function parseShowInMainMenu(raw: Record<string, unknown>): boolean | undefined {
+  if (!Object.prototype.hasOwnProperty.call(raw, 'showInMainMenu')) {
+    return undefined;
+  }
+  const v = raw.showInMainMenu;
+  if (typeof v === 'boolean') {
+    return v;
+  }
+  if (v === 'true' || v === 1 || v === '1') {
+    return true;
+  }
+  if (v === 'false' || v === 0 || v === '0') {
+    return false;
+  }
+  return undefined;
+}
+
+/** Nav visibility: BSON may omit legacy rows; explicitly false hides. Always send a boolean in JSON. */
+function categoryJsonForApi(doc: unknown): Record<string, unknown> {
+  const d =
+    typeof doc === 'object' && doc !== null && !Array.isArray(doc) ? (doc as Record<string, unknown>) : {};
+  return {
+    ...d,
+    showInMainMenu: d.showInMainMenu !== false,
+  };
+}
+
 function mongoErrMessage(err: unknown): string {
   if (err instanceof Error) {
     return err.message;
@@ -20,7 +48,10 @@ export const getCategories = async (_req: Request, res: Response): Promise<void>
       return;
     }
     const categories = await Category.find().sort({ order: 1 }).lean();
-    res.json({ success: true, data: categories });
+    res.json({
+      success: true,
+      data: categories.map((c) => categoryJsonForApi(c)),
+    });
   } catch (error) {
     console.error('getCategories', error);
     res.status(500).json({ success: false, message: mongoErrMessage(error) });
@@ -34,7 +65,7 @@ export const getCategoryBySlug = async (req: Request, res: Response): Promise<vo
       res.status(404).json({ message: 'Category not found' });
       return;
     }
-    res.json({ success: true, data: category });
+    res.json({ success: true, data: categoryJsonForApi(category.toObject()) });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -50,7 +81,7 @@ export const getCategoriesWithArticles = async (_req: Request, res: Response): P
           .sort({ publishedAt: -1 })
           .limit(6)
           .lean();
-        return { ...cat, articles };
+        return { ...categoryJsonForApi(cat), articles };
       })
     );
     res.json({ success: true, data: result });
@@ -61,8 +92,34 @@ export const getCategoriesWithArticles = async (_req: Request, res: Response): P
 
 export const createCategory = async (req: Request, res: Response): Promise<void> => {
   try {
-    const category = await Category.create(req.body);
-    res.status(201).json({ success: true, data: category });
+    const body = req.body as Record<string, unknown>;
+    const name = typeof body.name === 'string' ? body.name.trim() : '';
+    if (!name) {
+      res.status(400).json({ message: 'Name is required' });
+      return;
+    }
+    const description = typeof body.description === 'string' ? body.description : '';
+    const image = typeof body.image === 'string' ? body.image : '';
+    const orderNum = Number(body.order);
+    const order = Number.isFinite(orderNum) ? orderNum : 0;
+
+    const menuParsed = parseShowInMainMenu(body);
+    /** New desks default to hidden unless the client asks to show. */
+    const showInMainMenu = menuParsed !== undefined ? menuParsed : false;
+
+    const category = await Category.create({
+      name,
+      description,
+      image,
+      order,
+      showInMainMenu,
+    });
+
+    await Category.updateOne({ _id: category._id }, { $set: { showInMainMenu } });
+
+    const fresh = await Category.findById(category._id).lean();
+    const base = fresh ?? category.toObject();
+    res.status(201).json({ success: true, data: categoryJsonForApi(base) });
   } catch (error: any) {
     if (error.code === 11000) {
       res.status(400).json({ message: 'Category already exists' });
@@ -79,12 +136,15 @@ export const updateCategory = async (req: Request, res: Response): Promise<void>
       res.status(404).json({ message: 'Category not found' });
       return;
     }
-    const { name, description, image, order } = req.body as {
+    const body = req.body as Record<string, unknown>;
+    const { name, description, image, order } = body as {
       name?: string;
       description?: string;
       image?: string;
-      order?: number;
+      order?: unknown;
     };
+    const parsedMenuFlag = parseShowInMainMenu(body);
+
     if (typeof name === 'string' && name.trim()) {
       category.name = name.trim();
     }
@@ -97,8 +157,23 @@ export const updateCategory = async (req: Request, res: Response): Promise<void>
     if (order !== undefined && order !== null && !Number.isNaN(Number(order))) {
       category.order = Number(order);
     }
+    if (parsedMenuFlag !== undefined) {
+      category.set('showInMainMenu', parsedMenuFlag);
+      category.markModified('showInMainMenu');
+    }
     await category.save();
-    res.json({ success: true, data: category });
+
+    /** Ensure `false` is written and returned reliably (mongoose edge cases around optional booleans). */
+    if (parsedMenuFlag !== undefined) {
+      await Category.updateOne({ _id: category._id }, { $set: { showInMainMenu: parsedMenuFlag } });
+    }
+
+    const fresh = await Category.findById(category._id).lean();
+    if (!fresh) {
+      res.status(500).json({ message: 'Category not found after update' });
+      return;
+    }
+    res.json({ success: true, data: categoryJsonForApi(fresh) });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

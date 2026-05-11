@@ -2,6 +2,7 @@ import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { contentApi } from '@/lib/api';
+import { ADMIN_CATEGORIES_UPDATED } from '@/lib/adminEvents';
 import { categorySidebarNav } from '@/lib/adminCategoryNav';
 import { homeSidebarNavChunks } from '@/lib/adminSectionNav';
 import type { Category, Settings } from '@/types/api';
@@ -94,6 +95,19 @@ export function AdminLayout() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    const onCategoriesUpdated = () => {
+      void contentApi
+        .categories()
+        .then((cats) => setCategories(cats))
+        .catch(() => {
+          /* keep prior list */
+        });
+    };
+    window.addEventListener(ADMIN_CATEGORIES_UPDATED, onCategoriesUpdated);
+    return () => window.removeEventListener(ADMIN_CATEGORIES_UPDATED, onCategoriesUpdated);
   }, []);
 
   /** Keep homepage subsection list in sync after edits (sections & order, section saves). */
@@ -199,7 +213,7 @@ export function AdminLayout() {
       return 'Home page';
     }
     if (path.startsWith(CATEGORIES_PATH)) {
-      return 'All categories';
+      return 'Categories';
     }
     if (path.startsWith('/admin/settings')) {
       return 'Site settings';
@@ -250,7 +264,17 @@ export function AdminLayout() {
 
           <div className={styles.navBlock}>
             <p className={styles.navSectionLabel}>Site pages</p>
-            <p className={styles.navBlockHint}>Homepage blocks and each category desk (/category/…)</p>
+            <NavLink
+              to={CATEGORIES_PATH}
+              className={({ isActive }) => `${styles.pageLink} ${isActive ? styles.navLinkActive : ''}`}
+              end
+              onClick={() => setSidebarOpen(false)}
+            >
+              <span className={styles.navIcon} aria-hidden>
+                ▦
+              </span>
+              <span className={styles.pageLinkLabel}>Categories</span>
+            </NavLink>
             <div className={styles.pageNavRow}>
               <NavLink
                 to={HOME_PATH}
@@ -351,18 +375,6 @@ export function AdminLayout() {
                 </div>
               );
             })}
-
-            <NavLink
-              to={CATEGORIES_PATH}
-              className={({ isActive }) => `${styles.pageLink} ${isActive ? styles.navLinkActive : ''}`}
-              end
-              onClick={() => setSidebarOpen(false)}
-            >
-              <span className={styles.navIcon} aria-hidden>
-                ▦
-              </span>
-              All categories
-            </NavLink>
           </div>
         </nav>
         <div className={styles.sidebarFooter}>

@@ -224,13 +224,58 @@ export const adminApi = {
 
   updateCategory: async (
     id: string,
-    payload: { name?: string; description?: string; image?: string; order?: number },
+    payload: { name?: string; description?: string; image?: string; order?: number; showInMainMenu?: boolean },
     token: string
   ): Promise<Category> => {
     const { data } = await api.put<ApiResponse<Category>>(`/categories/${id}`, payload, {
       headers: { Authorization: `Bearer ${token}` },
     });
     return requireApiData(data, 'Save category');
+  },
+
+  createCategory: async (
+    payload: {
+      name: string;
+      description?: string;
+      image?: string;
+      order?: number;
+      /** Default false via API/schema when omitted. */
+      showInMainMenu?: boolean;
+    },
+    token: string
+  ): Promise<Category> => {
+    const { data } = await api.post<ApiResponse<Category>>('/categories', payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return requireApiData(data, 'Create category');
+  },
+
+  createArticle: async (
+    payload: {
+      title: string;
+      excerpt: string;
+      featuredImage: string;
+      category: string;
+      content?: string;
+      isPublished?: boolean;
+      isFeatured?: boolean;
+    },
+    token: string
+  ): Promise<Article> => {
+    const body = {
+      title: payload.title.trim(),
+      excerpt: payload.excerpt.trim().slice(0, 300),
+      featuredImage: payload.featuredImage.trim(),
+      category: payload.category,
+      content: payload.content?.trim() || '<p></p>',
+      isPublished: payload.isPublished ?? true,
+      isFeatured: payload.isFeatured ?? false,
+      tags: [],
+    };
+    const { data } = await api.post<ApiResponse<Article>>('/articles', body, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return requireApiData(data, 'Create article');
   },
 
   updateArticle: async (

@@ -2,7 +2,9 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { adminApi, contentApi } from '@/lib/api';
 import { AdminStoryEditorsList } from '@/components/admin/AdminStoryEditorsList';
+import { AdminCategorySlugSelect } from '@/components/admin/AdminCategorySlugSelect';
 import { useStoryEditors } from '@/hooks/useStoryEditors';
+import { useAdminCategoriesList } from '@/hooks/useAdminCategoriesList';
 import { useAdminHomeOutlet } from '@/pages/AdminHomeLayout';
 import type { Article } from '@/types/api';
 
@@ -19,6 +21,8 @@ export function AdminHomeSectionPage() {
   const [sectionSaving, setSectionSaving] = useState(false);
   const [sectionMessage, setSectionMessage] = useState<string | null>(null);
   const [sectionError, setSectionError] = useState<string | null>(null);
+
+  const { categories: categoryOptions } = useAdminCategoriesList();
 
   const showFeatured = !!section && section.source === 'featured';
   const { editedStories, updateStoryField, saveStory, storyStatuses } = useStoryEditors(
@@ -174,13 +178,34 @@ export function AdminHomeSectionPage() {
                 <option value="reviews">reviews</option>
               </select>
             </label>
-            <label>
-              Category slug (if category)
-              <input
-                value={section.categorySlug || ''}
-                onChange={(e) => updateSection({ categorySlug: e.target.value })}
-                disabled={section.source !== 'category'}
-              />
+            <label className="admin-category-section-label">
+              Category (homepage grid)
+              {section.source === 'category' ? (
+                <AdminCategorySlugSelect
+                  categories={categoryOptions}
+                  value={section.categorySlug || ''}
+                  disabled={false}
+                  onChange={(slug) => updateSection({ categorySlug: slug })}
+                />
+              ) : (
+                <input value="" placeholder="Choose source → category" disabled readOnly aria-disabled />
+              )}
+              {section.source === 'category' && section.categorySlug ? (
+                <span className="lede admin-hint admin-category-section-meta">
+                  Add or edit cards:{' '}
+                  <Link to={`/admin/pages/category/${encodeURIComponent(section.categorySlug)}/stories`}>
+                    Stories for this category →
+                  </Link>
+                  {' · '}
+                  <Link to="/admin/pages/categories">All categories →</Link>
+                </span>
+              ) : null}
+              {section.source === 'category' && !section.categorySlug ? (
+                <span className="lede admin-hint admin-category-section-meta">
+                  Pick a category above. Desks live under{' '}
+                  <Link to="/admin/pages/categories">Categories</Link> — add cards via each category&apos;s Stories.
+                </span>
+              ) : null}
             </label>
             <label>
               Limit

@@ -17,6 +17,8 @@ export interface Category {
   description?: string;
   image?: string;
   order?: number;
+  /** Omit or true: show in header/footer nav; false hides from nav (URLs still work). */
+  showInMainMenu?: boolean;
 }
 
 export interface Author {

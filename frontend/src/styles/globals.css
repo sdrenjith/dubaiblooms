@@ -1776,6 +1776,34 @@ a.admin-auth-link {
   margin-left: auto;
 }
 
+.admin-category-slug-select-wrap {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.admin-category-slug-select-wrap select {
+  width: 100%;
+  min-height: 38px;
+}
+
+.admin-category-slug-legacy {
+  display: block;
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.admin-category-section-label {
+  display: grid;
+  gap: 0.35rem;
+  align-items: start;
+}
+
+.admin-category-section-meta {
+  display: block;
+  margin: 0.15rem 0 0;
+  font-size: 0.86rem;
+}
+
 .admin-home-block-title {
   margin: 1.5rem 0 0.35rem;
   font-family: var(--font-display);

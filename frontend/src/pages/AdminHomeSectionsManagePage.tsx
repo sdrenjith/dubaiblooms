@@ -1,5 +1,7 @@
 import { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { AdminCategorySlugSelect } from '@/components/admin/AdminCategorySlugSelect';
+import { useAdminCategoriesList } from '@/hooks/useAdminCategoriesList';
 import { useAdminHomeOutlet } from '@/pages/AdminHomeLayout';
 import type { Settings } from '@/types/api';
 
@@ -25,6 +27,7 @@ function createBlankSection(patch: Partial<HomepageSection> = {}): HomepageSecti
 export function AdminHomeSectionsManagePage() {
   const { form, setForm, saving, message, error, persist, clearStatus } = useAdminHomeOutlet();
   const sections = form.homepage?.sections || [];
+  const { categories: categoryOptions, loading: categoriesLoading, error: categoriesError } = useAdminCategoriesList();
 
   const updateHomepage = (homepage: Partial<NonNullable<Settings['homepage']>>) => {
     clearStatus();
@@ -58,10 +61,12 @@ export function AdminHomeSectionsManagePage() {
         <h1 className="admin-screen-title">Sections & order</h1>
         <p className="lede admin-screen-lede">
           Reorder blocks as they appear on the homepage. Open a section title in the sidebar to edit copy and preview stories.
-          Use <strong>Add category</strong> for a grid fed by articles in one category—set the slug to match{' '}
-          <Link to="/admin/pages/categories">existing categories</Link> (same slugs as Topic tiles).
+          For category-driven grids, choose the desk from the list (from <Link to="/admin/pages/categories">Categories</Link>).{' '}
+          Add story cards under <strong>Sidebar → Category name → Stories</strong>.
         </p>
       </div>
+      {categoriesLoading ? <div className="status-banner">Loading category list…</div> : null}
+      {categoriesError ? <div className="status-banner">{categoriesError}</div> : null}
       {message ? <div className="status-banner">{message}</div> : null}
       {error ? <div className="status-banner">{error}</div> : null}
 
@@ -110,15 +115,27 @@ export function AdminHomeSectionsManagePage() {
                   <option value="category">category</option>
                   <option value="reviews">reviews</option>
                 </select>
-                <input
-                  placeholder="Category slug"
-                  value={section.categorySlug || ''}
-                  onChange={(e) => {
-                    const next = [...sections];
-                    next[idx] = { ...next[idx], categorySlug: e.target.value };
-                    updateHomepage({ sections: next });
-                  }}
-                />
+                {section.source === 'category' ? (
+                  <AdminCategorySlugSelect
+                    id={`homepage-section-category-${idx}`}
+                    categories={categoryOptions}
+                    value={section.categorySlug || ''}
+                    disabled={false}
+                    onChange={(slug) => {
+                      const next = [...sections];
+                      next[idx] = { ...next[idx], categorySlug: slug };
+                      updateHomepage({ sections: next });
+                    }}
+                  />
+                ) : (
+                  <input
+                    placeholder="Category (set type → category)"
+                    value=""
+                    disabled
+                    readOnly
+                    aria-disabled
+                  />
+                )}
                 <input
                   type="number"
                   min={1}
