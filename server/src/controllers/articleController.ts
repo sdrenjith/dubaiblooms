@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Article from '../models/Article.js';
+import Category from '../models/Category.js';
 import Settings from '../models/Settings.js';
 import { AuthRequest } from '../middleware/auth.js';
 
@@ -91,7 +92,6 @@ export const getArticlesByCategory = async (req: Request, res: Response): Promis
     const skip = (page - 1) * limit;
 
     // First find the category by slug
-    const Category = (await import('../models/Category.js')).default;
     const category = await Category.findOne({ slug: req.params.categorySlug });
     if (!category) {
       res.status(404).json({ message: 'Category not found' });
@@ -226,7 +226,6 @@ export const getAllArticlesAdmin = async (req: AuthRequest, res: Response): Prom
 
 export const getDashboardStats = async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const Category = (await import('../models/Category.js')).default;
     const [totalArticles, publishedArticles, featuredArticles, totalCategories, totalViews] =
       await Promise.all([
         Article.countDocuments(),

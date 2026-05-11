@@ -1,9 +1,7 @@
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
+import { env } from '../config/env.js';
 import Settings from '../models/Settings.js';
 import { DEFAULT_HOMEPAGE, DEFAULT_LISTING } from './homepageDefaults.js';
-
-dotenv.config();
 
 function isHomepageEmpty(homepage: {
   categoryTiles?: unknown[];
@@ -17,8 +15,7 @@ function isHomepageEmpty(homepage: {
 }
 
 async function run(): Promise<void> {
-  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/dubaiblooms';
-  await mongoose.connect(uri);
+  await mongoose.connect(env.MONGODB_URI);
   try {
     let settings = await Settings.findOne();
     if (!settings) {

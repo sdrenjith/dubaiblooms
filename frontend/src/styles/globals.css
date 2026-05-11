@@ -28,6 +28,13 @@
 
 html {
   overflow-x: hidden;
+  overscroll-behavior-x: none;
+}
+
+@supports (overflow: clip) {
+  html {
+    overflow-x: clip;
+  }
 }
 
 body {
@@ -40,7 +47,39 @@ body {
   color: var(--text);
   text-rendering: optimizeLegibility;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
+  overscroll-behavior-x: none;
+}
+
+@supports (overflow: clip) {
+  body {
+    overflow-x: clip;
+  }
+}
+
+#root,
+.app-shell {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+#main-content {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+@supports (overflow: clip) {
+  #main-content {
+    overflow-x: clip;
+  }
+}
+
+@supports (overflow: clip) {
+  #root,
+  .app-shell {
+    overflow-x: clip;
+  }
 }
 
 a {
@@ -48,8 +87,11 @@ a {
 }
 
 .page-wrap {
-  width: min(1160px, 92vw);
+  /* Avoid 100vw / vw widths: iOS Safari can make them slightly wider than the paint viewport and allow horizontal panning. */
+  width: min(1160px, calc(100% - 2rem));
+  max-width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .hero {
@@ -60,7 +102,7 @@ a {
 /* Homepage hero: flush under header (no top gutter) */
 .hero.hero-story.hero-fullwidth {
   width: 100%;
-  max-width: none;
+  max-width: 100%;
   margin: 0;
   padding-top: 0;
   padding-bottom: 2.6rem;
@@ -1130,7 +1172,10 @@ a {
 .admin-auth-actions {
   margin-top: 1rem;
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
+  align-items: center;
+  gap: 0.65rem 1.15rem;
 }
 
 .admin-auth-link {
@@ -1144,6 +1189,10 @@ a {
   text-decoration: underline;
   text-underline-offset: 0.18em;
   cursor: pointer;
+}
+
+a.admin-auth-link {
+  display: inline-block;
 }
 
 .admin-auth-link:hover {
@@ -1716,6 +1765,15 @@ a {
   gap: 0.65rem;
   align-items: center;
   margin-top: 0.5rem;
+}
+
+.admin-home-actions-row--sections .admin-save {
+  grid-column: unset;
+  flex: 0 0 auto;
+}
+
+.admin-home-actions-row--sections .admin-home-save-submit {
+  margin-left: auto;
 }
 
 .admin-home-block-title {

@@ -16,8 +16,9 @@
   transform: translate(-50%, -50%);
   z-index: 60;
   isolation: isolate;
-  width: min(420px, calc(100vw - 2rem));
-  max-width: 100%;
+  /* 100% tracks the layout viewport; 100vw is often a few px wider on iOS and causes horizontal panning */
+  width: min(420px, calc(100% - 2rem));
+  max-width: calc(100% - 2rem);
   display: flex;
   flex-direction: column;
   border: 1px solid rgba(185, 146, 63, 0.38);
@@ -190,8 +191,10 @@
 
 .newsletter,
 .grid {
-  width: min(1160px, 92vw);
+  width: min(1160px, calc(100% - 2rem));
+  max-width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .newsletter {
@@ -325,8 +328,10 @@
 }
 
 .legal {
-  width: min(1160px, 92vw);
+  width: min(1160px, calc(100% - 2rem));
+  max-width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
   border-top: 1px solid rgba(185, 146, 63, 0.18);
   padding-top: 1.1rem;
   color: #8a95a3;
@@ -356,5 +361,12 @@
 @media (max-width: 640px) {
   .grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@supports (width: 1svi) {
+  .subscribePopup {
+    width: min(420px, calc(100svi - 2rem));
+    max-width: min(420px, calc(100svi - 2rem));
   }
 }

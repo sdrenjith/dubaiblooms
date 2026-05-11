@@ -15,7 +15,7 @@ export function AppShell() {
   }, []);
 
   return (
-    <div>
+    <div className="app-shell">
       <Header />
       <main id="main-content" aria-live="polite">
         <Outlet />

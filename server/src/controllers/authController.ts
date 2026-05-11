@@ -1,11 +1,15 @@
 import crypto from 'crypto';
 import { Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { type SignOptions } from 'jsonwebtoken';
 import User from '../models/User.js';
 import { AuthRequest } from '../middleware/auth.js';
+import { env, getPublicBaseUrl } from '../config/env.js';
 
 const generateToken = (id: string): string => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback-secret', { expiresIn: '7d' });
+  const options: SignOptions = {
+    expiresIn: env.JWT_EXPIRES_IN as SignOptions['expiresIn'],
+  };
+  return jwt.sign({ id }, env.JWT_SECRET, options);
 };
 
 const hashResetToken = (token: string): string => {
@@ -36,7 +40,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const token = generateToken(user._id as string);
+    const token = generateToken(user._id.toString());
     res.json({
       success: true,
       data: {
@@ -218,7 +222,7 @@ export const requestPasswordReset = async (req: Request, res: Response): Promise
     user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
     await user.save({ validateBeforeSave: false });
 
-    const clientBase = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/$/, '');
+    const clientBase = getPublicBaseUrl().replace(/\/$/, '');
     const resetUrl = `${clientBase}/admin/reset-password?token=${encodeURIComponent(rawToken)}`;
     console.info(`[password-reset] ${user.email} → ${resetUrl}`);
 
@@ -228,7 +232,7 @@ export const requestPasswordReset = async (req: Request, res: Response): Promise
       resetUrl?: string;
     } = { message: GENERIC_RESET_MESSAGE };
 
-    if (process.env.NODE_ENV !== 'production') {
+    if (env.NODE_ENV !== 'production') {
       data.resetToken = rawToken;
       data.resetUrl = resetUrl;
     }

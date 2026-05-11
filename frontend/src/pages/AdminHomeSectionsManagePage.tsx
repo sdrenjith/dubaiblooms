@@ -3,6 +3,25 @@ import { Link } from 'react-router-dom';
 import { useAdminHomeOutlet } from '@/pages/AdminHomeLayout';
 import type { Settings } from '@/types/api';
 
+type HomepageSection = NonNullable<NonNullable<Settings['homepage']>['sections']>[number];
+
+function newSectionId(): string {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `section-${Date.now()}`;
+}
+
+/** Default-shaped row for the sections list editor. */
+function createBlankSection(patch: Partial<HomepageSection> = {}): HomepageSection {
+  return {
+    id: newSectionId(),
+    title: '',
+    subtitle: '',
+    source: 'latest',
+    categorySlug: '',
+    limit: 6,
+    ...patch,
+  };
+}
+
 export function AdminHomeSectionsManagePage() {
   const { form, setForm, saving, message, error, persist, clearStatus } = useAdminHomeOutlet();
   const sections = form.homepage?.sections || [];
@@ -39,6 +58,8 @@ export function AdminHomeSectionsManagePage() {
         <h1 className="admin-screen-title">Sections & order</h1>
         <p className="lede admin-screen-lede">
           Reorder blocks as they appear on the homepage. Open a section title in the sidebar to edit copy and preview stories.
+          Use <strong>Add category</strong> for a grid fed by articles in one category—set the slug to match{' '}
+          <Link to="/admin/pages/categories">existing categories</Link> (same slugs as Topic tiles).
         </p>
       </div>
       {message ? <div className="status-banner">{message}</div> : null}
@@ -131,25 +152,30 @@ export function AdminHomeSectionsManagePage() {
             </div>
           ))}
         </div>
-        <div className="admin-home-actions-row">
+        <div className="admin-home-actions-row admin-home-actions-row--sections">
           <button
             type="button"
+            className="admin-save"
             onClick={() => {
-              const id =
-                typeof crypto !== 'undefined' && 'randomUUID' in crypto
-                  ? crypto.randomUUID()
-                  : `section-${Date.now()}`;
               updateHomepage({
-                sections: [
-                  ...sections,
-                  { id, title: '', subtitle: '', source: 'latest', categorySlug: '', limit: 6 },
-                ],
+                sections: [...sections, createBlankSection()],
               });
             }}
           >
             Add section
           </button>
-          <button className="admin-save" type="submit" disabled={saving}>
+          <button
+            type="button"
+            className="admin-save"
+            onClick={() => {
+              updateHomepage({
+                sections: [...sections, createBlankSection({ source: 'category', categorySlug: '' })],
+              });
+            }}
+          >
+            Add category
+          </button>
+          <button className="admin-save admin-home-save-submit" type="submit" disabled={saving}>
             {saving ? 'Saving…' : 'Save order & sections'}
           </button>
         </div>

@@ -98,6 +98,9 @@ export function AdminLoginPage() {
               <button type="button" className="admin-auth-link" onClick={openForgot}>
                 Forgot password?
               </button>
+              <Link to="/" className="admin-auth-link">
+                Go back to home
+              </Link>
             </div>
           </>
         ) : (
@@ -152,6 +155,9 @@ export function AdminLoginPage() {
               >
                 ← Back to sign in
               </button>
+              <Link to="/" className="admin-auth-link">
+                Go back to home
+              </Link>
             </div>
           </>
         )}

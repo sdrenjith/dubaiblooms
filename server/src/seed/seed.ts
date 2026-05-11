@@ -1,12 +1,10 @@
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
+import { env } from '../config/env.js';
 import User from '../models/User.js';
 import Category from '../models/Category.js';
 import Article from '../models/Article.js';
 import Settings from '../models/Settings.js';
 import { DEFAULT_HOMEPAGE, DEFAULT_LISTING } from './homepageDefaults.js';
-
-dotenv.config();
 
 /** Thematic Unsplash hero crops for seed articles (ixlib required by CDN). */
 function editorialHero(photoId: string): string {
@@ -450,8 +448,7 @@ const generateSlug = (text: string): string => {
 
 const seed = async () => {
   try {
-    const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/dubaiblooms';
-    await mongoose.connect(uri);
+    await mongoose.connect(env.MONGODB_URI);
     console.log('📦 Connected to MongoDB for seeding...');
 
     // Drop existing collections to avoid stale index issues
@@ -536,9 +533,11 @@ const seed = async () => {
 
     console.log('\n✅ Seed completed successfully!');
     console.log('   Login: admin@dubaiblooms.com / admin123\n');
+    await mongoose.disconnect();
     process.exit(0);
   } catch (error) {
     console.error('❌ Seed error:', error);
+    await mongoose.disconnect().catch(() => undefined);
     process.exit(1);
   }
 };

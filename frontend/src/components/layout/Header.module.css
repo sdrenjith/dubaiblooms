@@ -2,6 +2,7 @@
   position: sticky;
   top: 0;
   z-index: 30;
+  max-width: 100%;
   border-bottom: 1px solid rgba(185, 146, 63, 0.12);
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(14px) saturate(1.02);
@@ -17,8 +18,10 @@
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   width: 100%;
+  max-width: 100%;
   padding: 0 min(4vw, 56px);
   border-bottom: 1px solid #141416;
+  overflow-x: clip;
 }
 
 .utilityText,
@@ -27,6 +30,13 @@
   font-size: 0.66rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
+}
+
+.utilityText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .utilityCenter {
@@ -39,6 +49,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.72rem;
+  flex-shrink: 0;
 }
 
 .utilityRight a {
@@ -66,8 +77,10 @@
 .mainBar,
 .nav {
   width: 100%;
+  max-width: 100%;
   margin: 0;
   padding-inline: min(4vw, 56px);
+  box-sizing: border-box;
 }
 
 .subscribeBtn,
@@ -105,6 +118,8 @@
   min-height: 82px;
   column-gap: 1rem;
   isolation: isolate;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 /* Right-side ambient graphic (behind actions / nav edge) */
@@ -190,6 +205,8 @@
   gap: 0.72rem;
   text-decoration: none;
   justify-self: start;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .brandMonogram {
@@ -210,9 +227,13 @@
 .logo {
   color: #141518;
   font-family: var(--font-display);
-  font-size: clamp(1.35rem, 1.85vw, 2rem);
+  font-size: clamp(1.15rem, 4.2vw, 2rem);
   letter-spacing: 0.02em;
   font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .logoPrimary {
@@ -297,7 +318,8 @@
   position: absolute;
   right: 0;
   top: calc(100% + 0.5rem);
-  width: min(480px, 92vw);
+  width: min(480px, calc(100vw - 2rem));
+  max-width: min(480px, calc(100vw - 2rem));
   max-height: min(72vh, 620px);
   overflow: auto;
   border: 1px solid rgba(185, 146, 63, 0.28);
@@ -401,7 +423,7 @@
 
 @media (max-width: 900px) {
   .utilityBar {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     padding-inline: min(4vw, 24px);
   }
 
@@ -412,6 +434,7 @@
   .mobileToggle {
     display: inline-flex;
     grid-column: 1;
+    flex-shrink: 0;
   }
 
   .brand {
@@ -439,19 +462,29 @@
   }
 
   .mainBar {
-    grid-template-columns: auto 1fr auto;
+    /* minmax(0,1fr) lets the logo column shrink on iPhone instead of forcing horizontal overflow */
+    grid-template-columns: auto minmax(0, 1fr) auto;
     min-height: 74px;
+    column-gap: 0.65rem;
   }
 
   .mainActions {
     justify-self: end;
+    flex-shrink: 0;
   }
 
   .searchPanel {
-    right: -8px;
+    right: 0;
   }
 
   .subscribeBtn {
     display: none;
+  }
+}
+
+@supports (width: 1svi) {
+  .searchPanel {
+    width: min(480px, calc(100svi - 2rem));
+    max-width: min(480px, calc(100svi - 2rem));
   }
 }
