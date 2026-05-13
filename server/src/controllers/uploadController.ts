@@ -1,10 +1,14 @@
 import { Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+/** Same folder `app.ts` serves via `express.static` — avoids `process.cwd()` when the server is not started from `server/`. */
+const uploadsDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'uploads');
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, path.join(process.cwd(), 'uploads'));
+    cb(null, uploadsDir);
   },
   filename: (_req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);

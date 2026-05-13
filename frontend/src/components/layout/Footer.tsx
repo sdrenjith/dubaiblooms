@@ -4,6 +4,7 @@ import { contentApi } from '@/lib/api';
 import styles from './Footer.module.css';
 import { useSiteData } from '@/hooks/useSiteData';
 import { categoryVisibleInMainMenu } from '@/lib/categoryNav';
+import { resolveMediaSrc } from '@/lib/mediaUrl';
 
 const DEFAULT_INSTAGRAM = 'https://www.instagram.com/dubai.blooms?igsh=MXM0bGR4ZGhhZjByNg==';
 
@@ -81,6 +82,7 @@ export function Footer() {
   }, [settings?.socialLinks]);
 
   const siteName = settings?.siteName?.trim() || 'Dubai Blooms';
+  const logoSrc = resolveMediaSrc(settings?.logo);
   const siteNameParts = siteName.split(/\s+/).filter(Boolean);
   const brandFirst = siteNameParts[0] || siteName;
   const brandRest = siteNameParts.slice(1).join(' ');
@@ -115,13 +117,19 @@ export function Footer() {
             ×
           </button>
           <div className={styles.popupBrand}>
-            <span className={styles.popupBrandMonogram} aria-hidden>
-              {brandMonogram}
-            </span>
-            <div className={styles.popupBrandWords}>
-              <span className={styles.popupBrandPrimary}>{brandFirst}</span>
-              {brandRest ? <span className={styles.popupBrandAccent}> {brandRest}</span> : null}
-            </div>
+            {logoSrc ? (
+              <img className={styles.popupBrandLogo} src={logoSrc} alt={siteName} width={200} height={40} />
+            ) : (
+              <>
+                <span className={styles.popupBrandMonogram} aria-hidden>
+                  {brandMonogram}
+                </span>
+                <div className={styles.popupBrandWords}>
+                  <span className={styles.popupBrandPrimary}>{brandFirst}</span>
+                  {brandRest ? <span className={styles.popupBrandAccent}> {brandRest}</span> : null}
+                </div>
+              </>
+            )}
           </div>
           <p className={styles.popupKicker}>{settings?.notifications?.title || 'Editor Alert'}</p>
           <h3 className={styles.popupHeadline}>
@@ -171,7 +179,13 @@ export function Footer() {
 
       <section className={styles.grid}>
         <div>
-          <h3>{settings?.siteName || 'Dubai Blooms'}</h3>
+          {logoSrc ? (
+            <div className={styles.footerBrandMark}>
+              <img className={styles.footerLogoImg} src={logoSrc} alt={siteName} width={200} height={40} />
+            </div>
+          ) : (
+            <h3>{siteName}</h3>
+          )}
           <p>{settings?.tagline || 'A modern luxury publication across travel, design, and lifestyle.'}</p>
         </div>
 

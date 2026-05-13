@@ -125,6 +125,28 @@
   color: #a67c28;
 }
 
+.popupBrandLogo {
+  display: block;
+  max-height: 36px;
+  width: auto;
+  max-width: min(220px, 70vw);
+  object-fit: contain;
+  object-position: left center;
+}
+
+.footerBrandMark {
+  margin-bottom: 0.7rem;
+}
+
+.footerLogoImg {
+  display: block;
+  height: clamp(30px, 4.5vw, 42px);
+  width: auto;
+  max-width: min(220px, 85vw);
+  object-fit: contain;
+  object-position: left center;
+}
+
 .kicker {
   margin: 0;
   line-height: 1;

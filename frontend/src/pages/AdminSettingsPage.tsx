@@ -1,6 +1,8 @@
 import axios from 'axios';
-import { FormEvent, useCallback, useEffect, useState } from 'react';
-import { adminApi, authApi, contentApi } from '@/lib/api';
+import { FormEvent, useCallback, useEffect, useId, useState } from 'react';
+import { adminApi, authApi, contentApi, uploadAdminImage } from '@/lib/api';
+import { notifyAdminSiteSettingsUpdated } from '@/lib/adminEvents';
+import { resolveMediaSrc } from '@/lib/mediaUrl';
 import type { AdminUserRow, AuthUser } from '@/lib/api';
 import type { Settings } from '@/types/api';
 
@@ -44,6 +46,10 @@ export function AdminSettingsPage() {
   const [teamUsers, setTeamUsers] = useState<AdminUserRow[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [usersError, setUsersError] = useState<string | null>(null);
+
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const logoFileInputId = useId();
 
   const loadTeamUsers = useCallback(async () => {
     if (!token) {
@@ -122,6 +128,7 @@ export function AdminSettingsPage() {
       const updated = await adminApi.updateSettings(form, token);
       setForm(updated);
       setMessage('Settings saved successfully.');
+      notifyAdminSiteSettingsUpdated();
     } catch {
       setError('Failed to save settings. Please verify admin token/session.');
     } finally {
@@ -417,10 +424,82 @@ export function AdminSettingsPage() {
               Tagline
               <input value={form.tagline || ''} onChange={(e) => updateField('tagline', e.target.value)} />
             </label>
-            <label>
-              Logo URL
-              <input value={form.logo || ''} onChange={(e) => updateField('logo', e.target.value)} />
-            </label>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <p style={{ margin: '0 0 0.35rem', fontWeight: 600 }}>Site logo</p>
+              <p className="lede admin-hint" style={{ marginTop: 0 }}>
+                Upload one image (JPEG, PNG, GIF, or WebP, max 5MB). It appears in the public header, footer, and
+                this admin sidebar. If removed, the site name text is shown again.
+              </p>
+              {logoError ? <div className="status-banner">{logoError}</div> : null}
+              {form.logo?.trim() ? (
+                <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                  <img
+                    src={resolveMediaSrc(form.logo)}
+                    alt="Current site logo preview"
+                    style={{ maxHeight: 48, maxWidth: 220, objectFit: 'contain' }}
+                  />
+                  <button
+                    type="button"
+                    className="admin-logo-remove-btn"
+                    disabled={logoUploading}
+                    onClick={async () => {
+                      if (!token) {
+                        return;
+                      }
+                      setLogoError(null);
+                      setLogoUploading(true);
+                      try {
+                        const updated = await adminApi.updateSettings({ logo: '' }, token);
+                        setForm(updated);
+                        setMessage('Logo removed. Remember to save other fields if you changed them.');
+                        notifyAdminSiteSettingsUpdated();
+                      } catch {
+                        setLogoError('Could not remove logo. Try again or use Save all settings.');
+                      } finally {
+                        setLogoUploading(false);
+                      }
+                    }}
+                  >
+                    Remove logo
+                  </button>
+                </div>
+              ) : null}
+              <div className="admin-logo-upload-wrap">
+                <input
+                  id={logoFileInputId}
+                  className="admin-file-input-hidden"
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                  disabled={logoUploading}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    if (!file || !token) {
+                      return;
+                    }
+                    setLogoError(null);
+                    setLogoUploading(true);
+                    try {
+                      const url = await uploadAdminImage(file, token);
+                      const updated = await adminApi.updateSettings({ logo: url }, token);
+                      setForm(updated);
+                      setMessage('Logo uploaded and saved.');
+                      notifyAdminSiteSettingsUpdated();
+                    } catch (err) {
+                      setLogoError(err instanceof Error ? err.message : 'Upload failed.');
+                    } finally {
+                      setLogoUploading(false);
+                    }
+                  }}
+                />
+                <label
+                  htmlFor={logoFileInputId}
+                  className={`admin-logo-upload-btn${logoUploading ? ' admin-logo-upload-btn--disabled' : ''}`}
+                >
+                  {logoUploading ? 'Uploading…' : 'Choose image'}
+                </label>
+              </div>
+            </div>
             <label>
               Footer Text
               <input value={form.footerText || ''} onChange={(e) => updateField('footerText', e.target.value)} />

@@ -209,6 +209,15 @@
   max-width: 100%;
 }
 
+.brandLogoImg {
+  display: block;
+  height: clamp(32px, 5.5vw, 46px);
+  width: auto;
+  max-width: min(240px, 46vw);
+  object-fit: contain;
+  object-position: left center;
+}
+
 .brandMonogram {
   width: 37px;
   height: 37px;
@@ -459,6 +468,10 @@
 
   .navOpen {
     display: flex;
+  }
+
+  .brandLogoImg {
+    object-position: center;
   }
 
   .mainBar {

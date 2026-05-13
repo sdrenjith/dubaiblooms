@@ -1378,6 +1378,89 @@ a.admin-auth-link {
   font-weight: 700;
 }
 
+.admin-file-input-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.admin-logo-upload-wrap {
+  position: relative;
+  margin-top: 0.75rem;
+}
+
+.admin-logo-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0.56rem 0.95rem;
+  border: 1px solid #d5bc78;
+  background: #ffffff;
+  color: #9f7d36;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-family: var(--font-body);
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background 170ms ease,
+    border-color 170ms ease,
+    color 170ms ease;
+  width: fit-content;
+  -webkit-font-smoothing: antialiased;
+}
+
+.admin-logo-upload-btn:hover {
+  background: #c79d45;
+  border-color: #c79d45;
+  color: #ffffff;
+}
+
+.admin-logo-upload-btn--disabled {
+  opacity: 0.55;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.admin-logo-upload-btn--disabled:hover {
+  background: #ffffff;
+  border-color: #d5bc78;
+  color: #9f7d36;
+}
+
+.admin-logo-remove-btn {
+  border: 1px solid #c3c4c7;
+  background: #f6f7f7;
+  color: #50575e;
+  border-radius: 6px;
+  min-height: 36px;
+  padding: 0 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+
+.admin-logo-remove-btn:hover:not(:disabled) {
+  background: #edeeee;
+  border-color: #8c8f94;
+  color: #1d2327;
+}
+
+.admin-logo-remove-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .admin-home-crumb {
   margin: 0 0 0.75rem;
   font-size: 0.88rem;

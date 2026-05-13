@@ -4,6 +4,7 @@ import { contentApi } from '@/lib/api';
 import type { Article } from '@/types/api';
 import { useSiteData } from '@/hooks/useSiteData';
 import { categoryVisibleInMainMenu } from '@/lib/categoryNav';
+import { resolveMediaSrc } from '@/lib/mediaUrl';
 import styles from './Header.module.css';
 
 export function Header() {
@@ -21,6 +22,7 @@ export function Header() {
   );
   const navItems = useMemo(() => categoriesForNav.slice(0, 6), [categoriesForNav]);
   const siteName = settings?.siteName || 'Dubai Blooms';
+  const logoSrc = resolveMediaSrc(settings?.logo);
   const headerBar = settings?.homepage?.header;
   const utilityLeft = headerBar?.topBarLeft?.trim() || 'EST. 2026 • DUBAI, UAE';
   const utilityCenter =
@@ -109,11 +111,17 @@ export function Header() {
         </button>
 
         <Link className={styles.brand} to="/">
-          <span className={styles.brandMonogram}>B</span>
-          <span className={styles.logo}>
-            <span className={styles.logoPrimary}>{siteName.split(' ')[0] || siteName}</span>{' '}
-            <span className={styles.logoAccent}>{siteName.split(' ').slice(1).join(' ')}</span>
-          </span>
+          {logoSrc ? (
+            <img className={styles.brandLogoImg} src={logoSrc} alt={siteName} width={220} height={48} />
+          ) : (
+            <>
+              <span className={styles.brandMonogram}>B</span>
+              <span className={styles.logo}>
+                <span className={styles.logoPrimary}>{siteName.split(' ')[0] || siteName}</span>{' '}
+                <span className={styles.logoAccent}>{siteName.split(' ').slice(1).join(' ')}</span>
+              </span>
+            </>
+          )}
         </Link>
 
         <nav className={`${styles.nav} ${isOpen ? styles.navOpen : ''}`}>

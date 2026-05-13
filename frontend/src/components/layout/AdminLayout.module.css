@@ -32,6 +32,15 @@
   letter-spacing: 0.02em;
 }
 
+.sidebarLogoImg {
+  display: block;
+  max-height: 36px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: left center;
+}
+
 .sidebarTag {
   margin: 0.35rem 0 0;
   font-size: 0.65rem;

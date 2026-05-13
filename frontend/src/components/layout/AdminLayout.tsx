@@ -2,7 +2,8 @@ import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { contentApi } from '@/lib/api';
-import { ADMIN_CATEGORIES_UPDATED } from '@/lib/adminEvents';
+import { ADMIN_CATEGORIES_UPDATED, ADMIN_SITE_SETTINGS_UPDATED } from '@/lib/adminEvents';
+import { resolveMediaSrc } from '@/lib/mediaUrl';
 import { categorySidebarNav } from '@/lib/adminCategoryNav';
 import { homeSidebarNavChunks } from '@/lib/adminSectionNav';
 import type { Category, Settings } from '@/types/api';
@@ -108,6 +109,23 @@ export function AdminLayout() {
     };
     window.addEventListener(ADMIN_CATEGORIES_UPDATED, onCategoriesUpdated);
     return () => window.removeEventListener(ADMIN_CATEGORIES_UPDATED, onCategoriesUpdated);
+  }, []);
+
+  useEffect(() => {
+    const onSiteSettingsUpdated = () => {
+      void contentApi
+        .settings()
+        .then((s) => {
+          if (s) {
+            setSiteSettings(s);
+          }
+        })
+        .catch(() => {
+          /* keep cached */
+        });
+    };
+    window.addEventListener(ADMIN_SITE_SETTINGS_UPDATED, onSiteSettingsUpdated);
+    return () => window.removeEventListener(ADMIN_SITE_SETTINGS_UPDATED, onSiteSettingsUpdated);
   }, []);
 
   /** Keep homepage subsection list in sync after edits (sections & order, section saves). */
@@ -234,7 +252,17 @@ export function AdminLayout() {
 
       <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ''}`} aria-label="Admin menu">
         <div className={styles.sidebarBrand}>
-          <p className={styles.sidebarLogo}>Dubai Blooms</p>
+          {siteSettings?.logo?.trim() ? (
+            <img
+              className={styles.sidebarLogoImg}
+              src={resolveMediaSrc(siteSettings.logo)}
+              alt={siteSettings.siteName?.trim() || 'Site'}
+              width={200}
+              height={40}
+            />
+          ) : (
+            <p className={styles.sidebarLogo}>{siteSettings?.siteName?.trim() || 'Dubai Blooms'}</p>
+          )}
           <p className={styles.sidebarTag}>Administration</p>
         </div>
         <nav id="admin-sidebar-nav" className={styles.nav}>
