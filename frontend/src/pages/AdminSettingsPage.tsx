@@ -2,6 +2,7 @@ import axios from 'axios';
 import { FormEvent, useCallback, useEffect, useId, useState } from 'react';
 import { adminApi, authApi, contentApi, uploadAdminImage } from '@/lib/api';
 import { notifyAdminSiteSettingsUpdated } from '@/lib/adminEvents';
+import { useAdminToast } from '@/context/AdminToastContext';
 import { resolveMediaSrc } from '@/lib/mediaUrl';
 import type { AdminUserRow, AuthUser } from '@/lib/api';
 import type { Settings } from '@/types/api';
@@ -20,11 +21,10 @@ const emptySettings: Settings = {
 
 export function AdminSettingsPage() {
   const token = localStorage.getItem('adminToken');
+  const toast = useAdminToast();
   const [form, setForm] = useState<Settings>(emptySettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [sessionUser, setSessionUser] = useState<AuthUser | null>(null);
   const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
@@ -32,23 +32,17 @@ export function AdminSettingsPage() {
   const [invitePassword2, setInvitePassword2] = useState('');
   const [inviteRole, setInviteRole] = useState<'admin' | 'editor'>('admin');
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
-  const [inviteMessage, setInviteMessage] = useState<string | null>(null);
-  const [inviteError, setInviteError] = useState<string | null>(null);
 
   const [profileName, setProfileName] = useState('');
   const [profileCurrentPassword, setProfileCurrentPassword] = useState('');
   const [profileNewPassword, setProfileNewPassword] = useState('');
   const [profileConfirmPassword, setProfileConfirmPassword] = useState('');
   const [profileSubmitting, setProfileSubmitting] = useState(false);
-  const [profileMessage, setProfileMessage] = useState<string | null>(null);
-  const [profileError, setProfileError] = useState<string | null>(null);
 
   const [teamUsers, setTeamUsers] = useState<AdminUserRow[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
-  const [usersError, setUsersError] = useState<string | null>(null);
 
   const [logoUploading, setLogoUploading] = useState(false);
-  const [logoError, setLogoError] = useState<string | null>(null);
   const logoFileInputId = useId();
 
   const loadTeamUsers = useCallback(async () => {
@@ -56,17 +50,16 @@ export function AdminSettingsPage() {
       return;
     }
     setUsersLoading(true);
-    setUsersError(null);
     try {
       const list = await authApi.listUsers(token);
       setTeamUsers(list);
     } catch {
-      setUsersError('Unable to load users. You may need administrator access.');
+      toast('error', 'Unable to load users. You may need administrator access.');
       setTeamUsers([]);
     } finally {
       setUsersLoading(false);
     }
-  }, [token]);
+  }, [token, toast]);
 
   useEffect(() => {
     const load = async () => {
@@ -74,13 +67,13 @@ export function AdminSettingsPage() {
         const settings = await contentApi.settings();
         setForm((settings || emptySettings) as Settings);
       } catch {
-        setError('Unable to load settings.');
+        toast('error', 'Unable to load settings.');
       } finally {
         setLoading(false);
       }
     };
     void load();
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     if (!token) {
@@ -122,15 +115,13 @@ export function AdminSettingsPage() {
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
-    setMessage(null);
-    setError(null);
     try {
       const updated = await adminApi.updateSettings(form, token);
       setForm(updated);
-      setMessage('Settings saved successfully.');
+      toast('success', 'Settings saved successfully.');
       notifyAdminSiteSettingsUpdated();
     } catch {
-      setError('Failed to save settings. Please verify admin token/session.');
+      toast('error', 'Failed to save settings. Please verify admin token/session.');
     } finally {
       setSaving(false);
     }
@@ -141,14 +132,12 @@ export function AdminSettingsPage() {
     if (!token) {
       return;
     }
-    setInviteMessage(null);
-    setInviteError(null);
     if (invitePassword.length < 6) {
-      setInviteError('Password must be at least 6 characters.');
+      toast('error', 'Password must be at least 6 characters.');
       return;
     }
     if (invitePassword !== invitePassword2) {
-      setInviteError('Passwords do not match.');
+      toast('error', 'Passwords do not match.');
       return;
     }
     setInviteSubmitting(true);
@@ -162,7 +151,7 @@ export function AdminSettingsPage() {
         },
         token
       );
-      setInviteMessage(`Account created for ${created.email} (${created.role}). They can sign in immediately.`);
+      toast('success', `Account created for ${created.email} (${created.role}). They can sign in immediately.`);
       setInviteName('');
       setInviteEmail('');
       setInvitePassword('');
@@ -174,7 +163,7 @@ export function AdminSettingsPage() {
         axios.isAxiosError(err) && err.response?.data && typeof err.response.data.message === 'string'
           ? err.response.data.message
           : 'Could not create user. You may need to log in again as an administrator.';
-      setInviteError(msg);
+      toast('error', msg);
     } finally {
       setInviteSubmitting(false);
     }
@@ -185,20 +174,18 @@ export function AdminSettingsPage() {
     if (!token || !sessionUser) {
       return;
     }
-    setProfileMessage(null);
-    setProfileError(null);
     const nameTrim = profileName.trim();
     if (profileNewPassword) {
       if (profileNewPassword.length < 6) {
-        setProfileError('New password must be at least 6 characters.');
+        toast('error', 'New password must be at least 6 characters.');
         return;
       }
       if (profileNewPassword !== profileConfirmPassword) {
-        setProfileError('New password and confirmation do not match.');
+        toast('error', 'New password and confirmation do not match.');
         return;
       }
       if (!profileCurrentPassword) {
-        setProfileError('Enter your current password to set a new one.');
+        toast('error', 'Enter your current password to set a new one.');
         return;
       }
     }
@@ -211,11 +198,11 @@ export function AdminSettingsPage() {
       payload.newPassword = profileNewPassword;
     }
     if (Object.keys(payload).length === 0) {
-      setProfileError('No changes to save.');
+      toast('error', 'No changes to save.');
       return;
     }
     if (!nameTrim) {
-      setProfileError('Display name cannot be empty.');
+      toast('error', 'Display name cannot be empty.');
       return;
     }
     setProfileSubmitting(true);
@@ -223,7 +210,7 @@ export function AdminSettingsPage() {
       const user = await authApi.updateMyProfile(token, payload);
       setSessionUser(user);
       setProfileName(user.name);
-      setProfileMessage('Your profile was updated.');
+      toast('success', 'Your profile was updated.');
       setProfileCurrentPassword('');
       setProfileNewPassword('');
       setProfileConfirmPassword('');
@@ -232,7 +219,7 @@ export function AdminSettingsPage() {
         axios.isAxiosError(err) && err.response?.data && typeof err.response.data.message === 'string'
           ? err.response.data.message
           : 'Could not update profile.';
-      setProfileError(msg);
+      toast('error', msg);
     } finally {
       setProfileSubmitting(false);
     }
@@ -248,8 +235,6 @@ export function AdminSettingsPage() {
           </p>
         </div>
         {loading ? <div className="status-banner">Loading settings...</div> : null}
-        {message ? <div className="status-banner">{message}</div> : null}
-        {error ? <div className="status-banner">{error}</div> : null}
 
         {sessionUser ? (
           <section className="admin-card admin-card-wide" style={{ marginBottom: '1.5rem' }}>
@@ -258,8 +243,6 @@ export function AdminSettingsPage() {
               Signed in as <strong>{sessionUser.email}</strong> ({sessionUser.role}). Update your display name or password below.
               Email cannot be changed here.
             </p>
-            {profileMessage ? <div className="status-banner">{profileMessage}</div> : null}
-            {profileError ? <div className="status-banner">{profileError}</div> : null}
             <form className="admin-form-grid" onSubmit={onProfileSubmit} style={{ marginTop: '0.75rem' }}>
               <label>
                 Display name
@@ -313,8 +296,6 @@ export function AdminSettingsPage() {
             <p className="lede admin-hint">
               Create another sign-in with administrator access, or an editor account. New users can log in from the same admin login page.
             </p>
-            {inviteMessage ? <div className="status-banner">{inviteMessage}</div> : null}
-            {inviteError ? <div className="status-banner">{inviteError}</div> : null}
             <form className="admin-form-grid" onSubmit={onInviteSubmit} style={{ marginTop: '0.75rem' }}>
               <label>
                 Full name
@@ -380,7 +361,6 @@ export function AdminSettingsPage() {
               </button>
             </div>
             <p className="lede admin-hint">All users who can sign in to the admin area.</p>
-            {usersError ? <div className="status-banner">{usersError}</div> : null}
             {usersLoading && teamUsers.length === 0 ? <div className="status-banner">Loading users…</div> : null}
             {teamUsers.length > 0 ? (
               <div style={{ overflowX: 'auto', marginTop: '0.75rem' }}>
@@ -407,7 +387,7 @@ export function AdminSettingsPage() {
                   </tbody>
                 </table>
               </div>
-            ) : !usersLoading && !usersError ? (
+            ) : !usersLoading && teamUsers.length === 0 ? (
               <p className="lede">No users returned.</p>
             ) : null}
           </section>
@@ -430,7 +410,6 @@ export function AdminSettingsPage() {
                 Upload one image (JPEG, PNG, GIF, or WebP, max 5MB). It appears in the public header, footer, and
                 this admin sidebar. If removed, the site name text is shown again.
               </p>
-              {logoError ? <div className="status-banner">{logoError}</div> : null}
               {form.logo?.trim() ? (
                 <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                   <img
@@ -446,15 +425,14 @@ export function AdminSettingsPage() {
                       if (!token) {
                         return;
                       }
-                      setLogoError(null);
                       setLogoUploading(true);
                       try {
                         const updated = await adminApi.updateSettings({ logo: '' }, token);
                         setForm(updated);
-                        setMessage('Logo removed. Remember to save other fields if you changed them.');
+                        toast('success', 'Logo removed. Other fields still need “Save all settings” if you changed them.');
                         notifyAdminSiteSettingsUpdated();
                       } catch {
-                        setLogoError('Could not remove logo. Try again or use Save all settings.');
+                        toast('error', 'Could not remove logo. Try again or use Save all settings.');
                       } finally {
                         setLogoUploading(false);
                       }
@@ -477,16 +455,15 @@ export function AdminSettingsPage() {
                     if (!file || !token) {
                       return;
                     }
-                    setLogoError(null);
                     setLogoUploading(true);
                     try {
                       const url = await uploadAdminImage(file, token);
                       const updated = await adminApi.updateSettings({ logo: url }, token);
                       setForm(updated);
-                      setMessage('Logo uploaded and saved.');
+                      toast('success', 'Logo uploaded and saved.');
                       notifyAdminSiteSettingsUpdated();
                     } catch (err) {
-                      setLogoError(err instanceof Error ? err.message : 'Upload failed.');
+                      toast('error', err instanceof Error ? err.message : 'Upload failed.');
                     } finally {
                       setLogoUploading(false);
                     }

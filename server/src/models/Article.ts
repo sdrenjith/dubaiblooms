@@ -28,7 +28,7 @@ const articleSchema = new Schema<IArticle>(
     title: { type: String, required: true, trim: true },
     slug: { type: String, unique: true, index: true },
     content: { type: String, required: true },
-    excerpt: { type: String, required: true, maxlength: 300 },
+    excerpt: { type: String, required: true, maxlength: 600 },
     featuredImage: { type: String, required: true },
     category: { type: Schema.Types.ObjectId, ref: 'Category', required: true, index: true },
     tags: [{ type: String, trim: true }],

@@ -5,6 +5,7 @@ import { adminApi, contentApi } from '@/lib/api';
 import { AdminStoryEditorsList } from '@/components/admin/AdminStoryEditorsList';
 import { categoryAdminBase } from '@/lib/adminCategoryNav';
 import { useStoryEditors } from '@/hooks/useStoryEditors';
+import { useAdminToast } from '@/context/AdminToastContext';
 import { useAdminCategoryOutlet } from '@/pages/AdminCategoryLayout';
 import type { Article } from '@/types/api';
 
@@ -15,10 +16,10 @@ const PLACEHOLDER_COVER_IMAGE =
 
 export function AdminCategoryStoriesPage() {
   const { category, token } = useAdminCategoryOutlet();
+  const toast = useAdminToast();
   const base = categoryAdminBase(category.slug);
   const [stories, setStories] = useState<Article[]>([]);
   const [storiesLoading, setStoriesLoading] = useState(false);
-  const [storiesError, setStoriesError] = useState<string | null>(null);
 
   const [addTitle, setAddTitle] = useState('');
   const [addExcerpt, setAddExcerpt] = useState('');
@@ -26,22 +27,19 @@ export function AdminCategoryStoriesPage() {
   const [addImage, setAddImage] = useState(PLACEHOLDER_COVER_IMAGE);
   const [addFeatured, setAddFeatured] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [createOk, setCreateOk] = useState<string | null>(null);
 
   const loadStories = useCallback(async () => {
     setStoriesLoading(true);
-    setStoriesError(null);
     try {
       const { articles } = await contentApi.articlesByCategory(category.slug, 1, STORIES_PAGE_SIZE);
       setStories(articles);
     } catch {
-      setStoriesError('Could not load stories.');
+      toast('error', 'Could not load stories.');
       setStories([]);
     } finally {
       setStoriesLoading(false);
     }
-  }, [category.slug]);
+  }, [category.slug, toast]);
 
   useEffect(() => {
     void loadStories();
@@ -63,14 +61,12 @@ export function AdminCategoryStoriesPage() {
     }
     const title = addTitle.trim();
     if (!title) {
-      setCreateError('Title is required.');
+      toast('error', 'Title is required.');
       return;
     }
     const featuredImage = addImage.trim() || PLACEHOLDER_COVER_IMAGE;
-    const excerpt = (addExcerpt.trim() || 'Draft excerpt — edit after publish.').slice(0, 300);
+    const excerpt = (addExcerpt.trim() || 'Draft excerpt — edit after publish.').slice(0, 600);
     setCreating(true);
-    setCreateError(null);
-    setCreateOk(null);
     try {
       await adminApi.createArticle(
         {
@@ -88,15 +84,14 @@ export function AdminCategoryStoriesPage() {
       setAddBody('');
       setAddImage(PLACEHOLDER_COVER_IMAGE);
       setAddFeatured(false);
-      setCreateOk('Story created. It appears below — adjust title, excerpt, and image, then Save story.');
-      window.setTimeout(() => setCreateOk(null), 6000);
+      toast('success', 'Story created. It appears below — adjust fields and use Save story on each card.');
       await loadStories();
     } catch (err) {
       const msg =
         axios.isAxiosError(err) && err.response?.data && typeof err.response.data.message === 'string'
           ? err.response.data.message
           : 'Could not create story.';
-      setCreateError(msg);
+      toast('error', msg);
     } finally {
       setCreating(false);
     }
@@ -141,10 +136,10 @@ export function AdminCategoryStoriesPage() {
             />
           </label>
           <label style={{ gridColumn: '1 / -1' }}>
-            Excerpt (optional, max 300)
+            Excerpt (optional, max 600)
             <textarea
               rows={3}
-              maxLength={300}
+              maxLength={600}
               value={addExcerpt}
               onChange={(e) => setAddExcerpt(e.target.value)}
             />
@@ -157,8 +152,6 @@ export function AdminCategoryStoriesPage() {
             <input type="checkbox" checked={addFeatured} onChange={(e) => setAddFeatured(e.target.checked)} /> Also flag
             as featured (homepage hero / featured grids)
           </label>
-          {createError ? <p className="status-banner">{createError}</p> : null}
-          {createOk ? <p className="status-banner">{createOk}</p> : null}
           <button className="admin-save" type="submit" disabled={creating} style={{ gridColumn: '1 / -1' }}>
             {creating ? 'Creating…' : 'Add story'}
           </button>
@@ -172,7 +165,7 @@ export function AdminCategoryStoriesPage() {
         storyStatuses={storyStatuses}
         showFeaturedCheckbox={false}
         storiesLoading={storiesLoading}
-        storiesError={storiesError}
+        storiesError={null}
       />
     </>
   );

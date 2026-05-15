@@ -1,29 +1,29 @@
 import { useCallback, useEffect, useState } from 'react';
 import { adminApi } from '@/lib/api';
+import { useAdminToast } from '@/context/AdminToastContext';
 import type { Subscriber } from '@/types/api';
 
 export function AdminNewsletterSubscribersPage() {
   const token = localStorage.getItem('adminToken');
+  const toast = useAdminToast();
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!token) {
       return;
     }
     setLoading(true);
-    setError(null);
     try {
       const list = await adminApi.getSubscribers(token);
       setSubscribers(list);
     } catch {
-      setError('Unable to load subscribers. Check your session.');
+      toast('error', 'Unable to load subscribers. Check your session.');
       setSubscribers([]);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, toast]);
 
   useEffect(() => {
     void load();
@@ -51,7 +51,6 @@ export function AdminNewsletterSubscribersPage() {
           </button>
         </p>
       </div>
-      {error ? <div className="status-banner">{error}</div> : null}
       {loading ? <div className="status-banner">Loading subscribers…</div> : null}
 
       {!loading ? (

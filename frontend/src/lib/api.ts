@@ -264,7 +264,7 @@ export const adminApi = {
   ): Promise<Article> => {
     const body = {
       title: payload.title.trim(),
-      excerpt: payload.excerpt.trim().slice(0, 300),
+      excerpt: payload.excerpt.trim().slice(0, 600),
       featuredImage: payload.featuredImage.trim(),
       category: payload.category,
       content: payload.content?.trim() || '<p></p>',
@@ -284,6 +284,7 @@ export const adminApi = {
       title?: string;
       excerpt?: string;
       featuredImage?: string;
+      content?: string;
       isFeatured?: boolean;
     },
     token: string

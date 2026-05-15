@@ -4,7 +4,7 @@ import { useAdminHomeOutlet } from '@/pages/AdminHomeLayout';
 import type { Settings } from '@/types/api';
 
 export function AdminHomeReviewsPage() {
-  const { form, setForm, saving, message, error, persist, clearStatus } = useAdminHomeOutlet();
+  const { form, setForm, saving, persist, clearStatus } = useAdminHomeOutlet();
 
   const updateHomepage = useCallback(
     (homepage: Partial<NonNullable<Settings['homepage']>>) => {
@@ -33,9 +33,6 @@ export function AdminHomeReviewsPage() {
         <h1 className="admin-screen-title">Testimonial library</h1>
         <p className="lede admin-screen-lede">Testimonials used in homepage review blocks. Edit each card below, then save.</p>
       </div>
-      {message ? <div className="status-banner">{message}</div> : null}
-      {error ? <div className="status-banner">{error}</div> : null}
-
       <form className="admin-tiles-editor" onSubmit={onSubmit}>
         <div className="admin-tiles-grid">
           {reviews.map((review, idx) => (

@@ -6,6 +6,7 @@ import { ADMIN_CATEGORIES_UPDATED, ADMIN_SITE_SETTINGS_UPDATED } from '@/lib/adm
 import { resolveMediaSrc } from '@/lib/mediaUrl';
 import { categorySidebarNav } from '@/lib/adminCategoryNav';
 import { homeSidebarNavChunks } from '@/lib/adminSectionNav';
+import { AdminToastProvider } from '@/context/AdminToastContext';
 import type { Category, Settings } from '@/types/api';
 import styles from './AdminLayout.module.css';
 
@@ -245,7 +246,8 @@ export function AdminLayout() {
   const homeSubLinks = useMemo(() => homeSidebarNavChunks(siteSettings), [siteSettings]);
 
   return (
-    <div className={styles.shell}>
+    <AdminToastProvider>
+      <div className={styles.shell}>
       {sidebarOpen ? (
         <button type="button" className={styles.backdrop} aria-label="Close menu" onClick={() => setSidebarOpen(false)} />
       ) : null}
@@ -433,5 +435,6 @@ export function AdminLayout() {
         </main>
       </div>
     </div>
+    </AdminToastProvider>
   );
 }

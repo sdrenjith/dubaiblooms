@@ -920,7 +920,17 @@ a {
 
 .article {
   padding: 3.5rem 0;
-  max-width: 72ch;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.article .lede {
+  max-width: 100%;
+  width: 100%;
+  overflow-wrap: anywhere;
+  word-wrap: break-word;
 }
 
 .article-meta-line {
@@ -937,6 +947,27 @@ a {
   font-family: var(--font-display);
   color: var(--gold-strong);
   font-weight: 700;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.article-hero {
+  margin: 0 0 1rem;
+  padding: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--silver);
+  background: var(--surface);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.article-hero-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: min(52vh, 520px);
+  object-fit: cover;
 }
 
 .article section {
@@ -946,6 +977,20 @@ a {
   border: 1px solid var(--silver);
   border-radius: 10px;
   padding: 1.2rem 1.3rem;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+
+/* Preserve line breaks inside article HTML (e.g. one `<p>` with typed newlines from admin). */
+.article section.article-body {
+  white-space: pre-line;
+}
+
+.article section.article-body pre,
+.article section.article-body code {
+  white-space: pre-wrap;
 }
 
 .article section img,
@@ -953,6 +998,60 @@ a {
 .article section video {
   max-width: 100%;
   height: auto;
+}
+
+/* Body from admin: plain-text paragraphs (`<p>` + `<br>`) or seeded HTML */
+.article section.article-body > p {
+  margin: 0 0 1.05em;
+}
+
+.article section.article-body > p:last-child {
+  margin-bottom: 0;
+}
+
+.article section.article-body > h2,
+.article section.article-body > h3 {
+  margin: 1.35em 0 0.65em;
+}
+
+.article section.article-body > h2:first-child,
+.article section.article-body > h3:first-child {
+  margin-top: 0;
+}
+
+.article section.article-body > ul,
+.article section.article-body > ol {
+  margin: 0 0 1.05em;
+  padding-left: 1.35rem;
+}
+
+@media (max-width: 640px) {
+  .article {
+    padding: clamp(1.25rem, 5vw, 2.5rem) 0;
+  }
+
+  .article h1 {
+    font-size: clamp(1.5rem, 6.2vw, 2.25rem);
+    line-height: 1.15;
+  }
+
+  .article .lede {
+    font-size: clamp(0.94rem, 3.8vw, 1.05rem);
+    line-height: 1.55;
+  }
+
+  .article-meta-line {
+    font-size: 0.76rem;
+    letter-spacing: 0.04em;
+  }
+
+  .article section {
+    padding: clamp(0.85rem, 3.5vw, 1.2rem) clamp(0.75rem, 3vw, 1.3rem);
+  }
+
+  .article-hero-img {
+    max-height: min(40vh, 320px);
+  }
 }
 
 .button-link {
@@ -1982,6 +2081,10 @@ a.admin-auth-link {
   min-height: 96px;
   resize: vertical;
   line-height: 1.45;
+}
+
+.admin-story-field textarea.admin-story-body-area {
+  min-height: 220px;
 }
 
 .admin-story-thumb-editor {

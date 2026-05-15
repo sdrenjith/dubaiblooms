@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { contentApi } from '@/lib/api';
 import type { Article } from '@/types/api';
 import { useSiteData } from '@/hooks/useSiteData';
-import { categoryVisibleInMainMenu } from '@/lib/categoryNav';
+import { categoryVisibleInMainMenu, isMainNavCategoryActive } from '@/lib/categoryNav';
 import { resolveMediaSrc } from '@/lib/mediaUrl';
 import styles from './Header.module.css';
 
 export function Header() {
   const { settings, categories } = useSiteData();
+  const { pathname } = useLocation();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -125,13 +126,19 @@ export function Header() {
         </Link>
 
         <nav className={`${styles.nav} ${isOpen ? styles.navOpen : ''}`}>
-          <NavLink className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ''}`} to="/">
+          <NavLink
+            end
+            className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ''}`}
+            to="/"
+          >
             Home
           </NavLink>
           {navItems.map((category) => (
             <NavLink
               key={category._id}
-              className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ''}`}
+              className={({ isActive }) =>
+                `${styles.navItem} ${isActive || isMainNavCategoryActive(pathname, category.slug) ? styles.active : ''}`
+              }
               onClick={() => setIsOpen(false)}
               to={`/category/${category.slug}`}
             >

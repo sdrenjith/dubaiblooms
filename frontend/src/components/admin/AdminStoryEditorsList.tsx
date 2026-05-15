@@ -36,7 +36,8 @@ export function AdminStoryEditorsList({
       <p className="lede admin-hint admin-story-grid-hint">
         {hint ?? (
           <>
-            Edit each card below, then use <strong>Save story</strong>. Excerpt is limited to 300 characters on the server.
+            Edit each card below, then use <strong>Save story</strong>. Excerpt is limited to 600 characters. Body is HTML
+            for the main story text on the public page.
             {showFeaturedCheckbox ? ' “Featured story” controls inclusion in featured feeds.' : ''}
           </>
         )}
@@ -71,12 +72,22 @@ export function AdminStoryEditorsList({
                 />
               </label>
               <label className="admin-story-field">
-                Excerpt ({a.excerpt.length}/300)
+                Excerpt ({a.excerpt.length}/600)
                 <textarea
                   rows={4}
-                  maxLength={300}
+                  maxLength={600}
                   value={a.excerpt}
                   onChange={(e) => updateStoryField(a._id, { excerpt: e.target.value })}
+                />
+              </label>
+              <label className="admin-story-field" style={{ gridColumn: '1 / -1' }}>
+                Body (HTML — main article text)
+                <textarea
+                  className="admin-story-body-area"
+                  rows={10}
+                  spellCheck={false}
+                  value={a.content ?? ''}
+                  onChange={(e) => updateStoryField(a._id, { content: e.target.value })}
                 />
               </label>
               <label className="admin-story-field">
@@ -110,16 +121,6 @@ export function AdminStoryEditorsList({
                 >
                   {status === 'saving' ? 'Saving…' : 'Save story'}
                 </button>
-                {status === 'saved' ? (
-                  <span className="admin-story-save-status ok" aria-live="polite">
-                    Saved
-                  </span>
-                ) : null}
-                {status === 'error' ? (
-                  <span className="admin-story-save-status err" role="alert">
-                    Save failed
-                  </span>
-                ) : null}
               </div>
             </article>
           );

@@ -5,6 +5,7 @@ import { AdminStoryEditorsList } from '@/components/admin/AdminStoryEditorsList'
 import { AdminCategorySlugSelect } from '@/components/admin/AdminCategorySlugSelect';
 import { useStoryEditors } from '@/hooks/useStoryEditors';
 import { useAdminCategoriesList } from '@/hooks/useAdminCategoriesList';
+import { useAdminToast } from '@/context/AdminToastContext';
 import { useAdminHomeOutlet } from '@/pages/AdminHomeLayout';
 import type { Article } from '@/types/api';
 
@@ -12,17 +13,21 @@ export function AdminHomeSectionPage() {
   const { sectionIndex } = useParams();
   const idx = Number(sectionIndex);
   const { form, setForm, clearStatus, token } = useAdminHomeOutlet();
+  const toast = useAdminToast();
   const sections = form.homepage?.sections || [];
   const section = Number.isFinite(idx) && idx >= 0 && idx < sections.length ? sections[idx] : null;
 
   const [stories, setStories] = useState<Article[]>([]);
   const [storiesLoading, setStoriesLoading] = useState(false);
-  const [storiesError, setStoriesError] = useState<string | null>(null);
   const [sectionSaving, setSectionSaving] = useState(false);
-  const [sectionMessage, setSectionMessage] = useState<string | null>(null);
-  const [sectionError, setSectionError] = useState<string | null>(null);
 
-  const { categories: categoryOptions } = useAdminCategoriesList();
+  const { categories: categoryOptions, error: categoriesLoadError } = useAdminCategoriesList();
+
+  useEffect(() => {
+    if (categoriesLoadError) {
+      toast('error', categoriesLoadError);
+    }
+  }, [categoriesLoadError, toast]);
 
   const showFeatured = !!section && section.source === 'featured';
   const { editedStories, updateStoryField, saveStory, storyStatuses } = useStoryEditors(
@@ -41,7 +46,6 @@ export function AdminHomeSectionPage() {
     let cancelled = false;
     const load = async () => {
       setStoriesLoading(true);
-      setStoriesError(null);
       try {
         const limit = Math.max(1, section.limit || 6);
         if (section.source === 'featured') {
@@ -70,7 +74,7 @@ export function AdminHomeSectionPage() {
         }
       } catch {
         if (!cancelled) {
-          setStoriesError('Could not load stories.');
+          toast('error', 'Could not load stories.');
           setStories([]);
         }
       } finally {
@@ -83,7 +87,7 @@ export function AdminHomeSectionPage() {
     return () => {
       cancelled = true;
     };
-  }, [section?.id, section?.source, section?.categorySlug, section?.limit]);
+  }, [section?.id, section?.source, section?.categorySlug, section?.limit, toast]);
 
   if (!section) {
     return <Navigate to="/admin/pages/home" replace />;
@@ -91,8 +95,6 @@ export function AdminHomeSectionPage() {
 
   const updateSection = (patch: Partial<(typeof sections)[number]>) => {
     clearStatus();
-    setSectionMessage(null);
-    setSectionError(null);
     const next = [...sections];
     next[idx] = { ...next[idx], ...patch };
     setForm((prev) => ({
@@ -107,8 +109,6 @@ export function AdminHomeSectionPage() {
       return;
     }
     setSectionSaving(true);
-    setSectionMessage(null);
-    setSectionError(null);
     try {
       const updated = await adminApi.updateHomepageSection(
         idx,
@@ -126,9 +126,9 @@ export function AdminHomeSectionPage() {
         listing: updated.listing ?? prev.listing,
         homepage: updated.homepage ?? prev.homepage,
       }));
-      setSectionMessage('Saved.');
+      toast('success', 'Section settings saved.');
     } catch {
-      setSectionError('Failed to save section settings. Please retry after restarting the API server.');
+      toast('error', 'Failed to save section settings. Please retry after restarting the API server.');
     } finally {
       setSectionSaving(false);
     }
@@ -147,8 +147,6 @@ export function AdminHomeSectionPage() {
         <h1 className="admin-screen-title">{section.title?.trim() || section.id || 'Section'}</h1>
         <p className="lede admin-screen-lede">{section.subtitle || 'Configure this block and preview the stories shown on the site.'}</p>
       </div>
-      {sectionMessage ? <div className="status-banner">{sectionMessage}</div> : null}
-      {sectionError ? <div className="status-banner">{sectionError}</div> : null}
 
       <form onSubmit={onSubmit}>
         <section className="admin-card admin-card-wide">
@@ -251,7 +249,7 @@ export function AdminHomeSectionPage() {
           storyStatuses={storyStatuses}
           showFeaturedCheckbox={section.source === 'featured'}
           storiesLoading={storiesLoading}
-          storiesError={storiesError}
+          storiesError={null}
         />
       )}
     </>

@@ -2,19 +2,19 @@ import axios from 'axios';
 import { FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi } from '@/lib/api';
+import { useAdminToast } from '@/context/AdminToastContext';
 import { categoryAdminBase } from '@/lib/adminCategoryNav';
 import { useAdminCategoryOutlet } from '@/pages/AdminCategoryLayout';
 
 export function AdminCategoryInfoPage() {
   const { category, token, refreshCategory } = useAdminCategoryOutlet();
+  const toast = useAdminToast();
   const base = categoryAdminBase(category.slug);
   const [name, setName] = useState(category.name);
   const [description, setDescription] = useState(category.description || '');
   const [image, setImage] = useState(category.image || '');
   const [order, setOrder] = useState(typeof category.order === 'number' ? category.order : 0);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setName(category.name);
@@ -26,8 +26,6 @@ export function AdminCategoryInfoPage() {
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setMessage(null);
-    setError(null);
     try {
       await adminApi.updateCategory(
         category._id,
@@ -40,14 +38,13 @@ export function AdminCategoryInfoPage() {
         token
       );
       await refreshCategory();
-      setMessage('Saved.');
-      window.setTimeout(() => setMessage(null), 2200);
+      toast('success', 'Saved.');
     } catch (err) {
       const msg =
         axios.isAxiosError(err) && err.response?.data && typeof err.response.data.message === 'string'
           ? err.response.data.message
           : 'Save failed.';
-      setError(msg);
+      toast('error', msg);
     } finally {
       setSaving(false);
     }
@@ -64,8 +61,6 @@ export function AdminCategoryInfoPage() {
           Public listing page: <code>/category/{category.slug}</code>
         </p>
       </div>
-      {message ? <div className="status-banner">{message}</div> : null}
-      {error ? <div className="status-banner">{error}</div> : null}
 
       <form onSubmit={(e) => void onSubmit(e)}>
         <section className="admin-card admin-card-wide">

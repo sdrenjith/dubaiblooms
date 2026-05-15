@@ -2,6 +2,7 @@ import axios from 'axios';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { adminApi, contentApi } from '@/lib/api';
+import { useAdminToast } from '@/context/AdminToastContext';
 import { notifyAdminCategoriesUpdated } from '@/lib/adminEvents';
 import type { Category } from '@/types/api';
 import styles from './AdminCategoriesGridPage.module.css';
@@ -26,20 +27,16 @@ function rowFromCategory(c: Category): RowState {
 
 export function AdminCategoriesGridPage() {
   const token = localStorage.getItem('adminToken');
+  const toast = useAdminToast();
   const location = useLocation();
   const [list, setList] = useState<Category[]>([]);
   const [rows, setRows] = useState<Record<string, RowState>>({});
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
-  const [flash, setFlash] = useState<Record<string, string | null>>({});
-  const [rowError, setRowError] = useState<Record<string, string | null>>({});
   const [newName, setNewName] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newOrder, setNewOrder] = useState(0);
   const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [createFlash, setCreateFlash] = useState<string | null>(null);
   const [newShowInMainMenu, setNewShowInMainMenu] = useState(false);
 
   const refresh = useCallback(async () => {
@@ -47,7 +44,6 @@ export function AdminCategoriesGridPage() {
       return;
     }
     setLoading(true);
-    setLoadError(null);
     try {
       const categories = await contentApi.categories();
       setList(categories);
@@ -55,13 +51,13 @@ export function AdminCategoriesGridPage() {
         Object.fromEntries(categories.map((c) => [c._id, rowFromCategory(c)]))
       );
     } catch {
-      setLoadError('Unable to load categories.');
+      toast('error', 'Unable to load categories.');
       setList([]);
       setRows({});
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, toast]);
 
   useEffect(() => {
     void refresh();
@@ -96,8 +92,6 @@ export function AdminCategoriesGridPage() {
       return;
     }
     setSavingId(category._id);
-    setRowError((e) => ({ ...e, [category._id]: null }));
-    setFlash((f) => ({ ...f, [category._id]: null }));
     try {
       const updated = await adminApi.updateCategory(
         category._id,
@@ -115,16 +109,13 @@ export function AdminCategoriesGridPage() {
         ...prev,
         [updated._id]: rowFromCategory(updated),
       }));
-      setFlash((f) => ({ ...f, [category._id]: 'Saved.' }));
-      window.setTimeout(() => {
-        setFlash((f) => ({ ...f, [category._id]: null }));
-      }, 2200);
+      toast('success', `Saved: ${row.name.trim() || category.name}.`);
     } catch (err) {
       const msg =
         axios.isAxiosError(err) && err.response?.data && typeof err.response.data.message === 'string'
           ? err.response.data.message
           : 'Save failed.';
-      setRowError((e) => ({ ...e, [category._id]: msg }));
+      toast('error', `${row.name.trim() || category.name}: ${msg}`);
     } finally {
       setSavingId(null);
     }
@@ -137,12 +128,10 @@ export function AdminCategoriesGridPage() {
     }
     const name = newName.trim();
     if (!name) {
-      setCreateError('Name is required.');
+      toast('error', 'Name is required.');
       return;
     }
     setCreating(true);
-    setCreateError(null);
-    setCreateFlash(null);
     try {
       await adminApi.createCategory(
         {
@@ -157,16 +146,15 @@ export function AdminCategoriesGridPage() {
       setNewDescription('');
       setNewOrder(0);
       setNewShowInMainMenu(false);
-      setCreateFlash('Category created. Add story cards from its Stories page in the sidebar.');
+      toast('success', 'Category created. Add story cards from its Stories page in the sidebar.');
       await refresh();
       notifyAdminCategoriesUpdated();
-      window.setTimeout(() => setCreateFlash(null), 5000);
     } catch (err) {
       const msg =
         axios.isAxiosError(err) && err.response?.data && typeof err.response.data.message === 'string'
           ? err.response.data.message
           : 'Could not create category.';
-      setCreateError(msg);
+      toast('error', msg);
     } finally {
       setCreating(false);
     }
@@ -224,14 +212,11 @@ export function AdminCategoriesGridPage() {
             />
             Show in main menu (header + footer category links)
           </label>
-          {createError ? <p className="status-banner">{createError}</p> : null}
-          {createFlash ? <p className="status-banner">{createFlash}</p> : null}
           <button className="admin-save" type="submit" disabled={creating} style={{ gridColumn: '1 / -1' }}>
             {creating ? 'Creating…' : 'Create category'}
           </button>
         </form>
       </section>
-      {loadError ? <div className="status-banner">{loadError}</div> : null}
       {loading ? <div className="status-banner">Loading categories…</div> : null}
 
       {!loading && list.length === 0 ? (
@@ -301,8 +286,6 @@ export function AdminCategoriesGridPage() {
                     Show in main menu (header and footer navigation)
                   </label>
                 </div>
-                {flash[category._id] ? <p className={styles.cardMessage}>{flash[category._id]}</p> : null}
-                {rowError[category._id] ? <p className={styles.cardError}>{rowError[category._id]}</p> : null}
                 <div className={styles.cardActions}>
                   <button className={styles.saveBtn} type="submit" disabled={busy}>
                     {busy ? 'Saving…' : 'Save'}

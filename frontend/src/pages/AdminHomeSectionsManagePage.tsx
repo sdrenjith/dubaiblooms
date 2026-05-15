@@ -1,6 +1,7 @@
-import { FormEvent } from 'react';
+import { FormEvent, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminCategorySlugSelect } from '@/components/admin/AdminCategorySlugSelect';
+import { useAdminToast } from '@/context/AdminToastContext';
 import { useAdminCategoriesList } from '@/hooks/useAdminCategoriesList';
 import { useAdminHomeOutlet } from '@/pages/AdminHomeLayout';
 import type { Settings } from '@/types/api';
@@ -25,9 +26,16 @@ function createBlankSection(patch: Partial<HomepageSection> = {}): HomepageSecti
 }
 
 export function AdminHomeSectionsManagePage() {
-  const { form, setForm, saving, message, error, persist, clearStatus } = useAdminHomeOutlet();
+  const { form, setForm, saving, persist, clearStatus } = useAdminHomeOutlet();
+  const toast = useAdminToast();
   const sections = form.homepage?.sections || [];
   const { categories: categoryOptions, loading: categoriesLoading, error: categoriesError } = useAdminCategoriesList();
+
+  useEffect(() => {
+    if (categoriesError) {
+      toast('error', categoriesError);
+    }
+  }, [categoriesError, toast]);
 
   const updateHomepage = (homepage: Partial<NonNullable<Settings['homepage']>>) => {
     clearStatus();
@@ -66,9 +74,6 @@ export function AdminHomeSectionsManagePage() {
         </p>
       </div>
       {categoriesLoading ? <div className="status-banner">Loading category list…</div> : null}
-      {categoriesError ? <div className="status-banner">{categoriesError}</div> : null}
-      {message ? <div className="status-banner">{message}</div> : null}
-      {error ? <div className="status-banner">{error}</div> : null}
 
       <form onSubmit={onSubmit}>
         <div className="admin-home-manage-list">

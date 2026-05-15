@@ -4,7 +4,7 @@ import { useAdminHomeOutlet } from '@/pages/AdminHomeLayout';
 const HOME_BASE = '/admin/pages/home';
 
 export function AdminHomeHubPage() {
-  const { form, message, error } = useAdminHomeOutlet();
+  const { form } = useAdminHomeOutlet();
   const tiles = form.homepage?.categoryTiles || [];
   const sections = form.homepage?.sections || [];
   const reviews = form.homepage?.googleReviews || [];
@@ -21,8 +21,6 @@ export function AdminHomeHubPage() {
           </Link>
         </p>
       </div>
-      {message ? <div className="status-banner">{message}</div> : null}
-      {error ? <div className="status-banner">{error}</div> : null}
 
       <div className="admin-home-hub-grid">
         <Link className="admin-home-hub-card" to={`${HOME_BASE}/header`}>

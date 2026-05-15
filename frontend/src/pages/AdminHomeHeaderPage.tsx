@@ -20,7 +20,7 @@ type HeaderBarPatch = {
 };
 
 export function AdminHomeHeaderPage() {
-  const { form, setForm, saving, message, error, persist, clearStatus } = useAdminHomeOutlet();
+  const { form, setForm, saving, persist, clearStatus } = useAdminHomeOutlet();
   const [liveHeroStories, setLiveHeroStories] = useState<Article[]>([]);
   const [liveHeroLoading, setLiveHeroLoading] = useState(true);
   const [siteSettings, setSiteSettings] = useState<Settings | null>(null);
@@ -189,9 +189,6 @@ export function AdminHomeHeaderPage() {
         <h1 className="admin-screen-title">Header & hero</h1>
         <p className="lede admin-screen-lede">Top bar, ticker, and links to the stories that power the hero when needed.</p>
       </div>
-      {message ? <div className="status-banner">{message}</div> : null}
-      {error ? <div className="status-banner">{error}</div> : null}
-
       <form onSubmit={onSubmit}>
         <section className="admin-card admin-card-wide">
           <h2>Top bar (above logo)</h2>

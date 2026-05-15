@@ -2,6 +2,7 @@ import axios from 'axios';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, Outlet, useOutletContext } from 'react-router-dom';
 import { adminApi, contentApi } from '@/lib/api';
+import { useAdminToast } from '@/context/AdminToastContext';
 import {
   headerBarOnly,
   normalizeHeroCardsFromHomepage,
@@ -51,8 +52,6 @@ export type AdminHomeOutletContext = {
   setForm: React.Dispatch<React.SetStateAction<Pick<Settings, 'listing' | 'homepage'>>>;
   loading: boolean;
   saving: boolean;
-  message: string | null;
-  error: string | null;
   persist: () => Promise<void>;
   clearStatus: () => void;
   token: string;
@@ -64,13 +63,12 @@ export function useAdminHomeOutlet(): AdminHomeOutletContext {
 
 export function AdminHomeLayout() {
   const token = localStorage.getItem('adminToken') || '';
+  const toast = useAdminToast();
   const [form, setForm] = useState<Pick<Settings, 'listing' | 'homepage'>>(emptyHomeSlice);
   const formRef = useRef(form);
   formRef.current = form;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,14 +78,13 @@ export function AdminHomeLayout() {
         if (cancelled) {
           return;
         }
-        setError(null);
         setForm({
           listing: settings?.listing || emptyHomeSlice.listing,
           homepage: mergeHomepageFromApi(settings?.homepage),
         });
       } catch (err) {
         if (!cancelled) {
-          setError(loadHomepageErrorMessage(err));
+          toast('error', loadHomepageErrorMessage(err));
         }
       } finally {
         if (!cancelled) {
@@ -99,22 +96,17 @@ export function AdminHomeLayout() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [toast]);
 
-  const clearStatus = useCallback(() => {
-    setMessage(null);
-    setError(null);
-  }, []);
+  const clearStatus = useCallback(() => {}, []);
 
   const persist = useCallback(async () => {
     if (!token) {
-      setError('Your session expired. Sign in again to save.');
+      toast('error', 'Your session expired. Sign in again to save.');
       return;
     }
     const latest = formRef.current;
     setSaving(true);
-    setMessage(null);
-    setError(null);
     try {
       const payload = {
         listing: latest.listing ?? emptyHomeSlice.listing,
@@ -127,7 +119,7 @@ export function AdminHomeLayout() {
         homepage: mergeHomepageFromApi(hpMerged),
       };
       setForm(next);
-      setMessage('Saved.');
+      toast('success', 'Saved.');
     } catch (err) {
       const msg = axios.isAxiosError(err)
         ? typeof err.response?.data === 'object' &&
@@ -138,11 +130,11 @@ export function AdminHomeLayout() {
         : err instanceof Error
           ? err.message
           : 'Unknown error';
-      setError(`Failed to save: ${msg}`);
+      toast('error', `Failed to save: ${msg}`);
     } finally {
       setSaving(false);
     }
-  }, [token]);
+  }, [token, toast]);
 
   const contextValue = useMemo<AdminHomeOutletContext>(
     () => ({
@@ -150,13 +142,11 @@ export function AdminHomeLayout() {
       setForm,
       loading,
       saving,
-      message,
-      error,
       persist,
       clearStatus,
       token,
     }),
-    [form, loading, saving, message, error, persist, clearStatus, token]
+    [form, loading, saving, persist, clearStatus, token]
   );
 
   if (!token) {

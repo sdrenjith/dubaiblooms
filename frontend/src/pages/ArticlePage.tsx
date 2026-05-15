@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { contentApi } from '@/lib/api';
+import { prepareArticleBodyHtml } from '@/lib/articleContent';
+import { resolveMediaSrc } from '@/lib/mediaUrl';
 import type { Article } from '@/types/api';
 
 export function ArticlePage() {
@@ -66,15 +68,27 @@ export function ArticlePage() {
     );
   }
 
+  const heroSrc = resolveMediaSrc(article.featuredImage);
+
   return (
     <div className="page-wrap">
       <article className="article">
         <h1>{article.title}</h1>
         <p className="lede">{article.excerpt}</p>
+        {heroSrc ? (
+          <figure className="article-hero">
+            <img className="article-hero-img" src={heroSrc} alt={article.title} />
+          </figure>
+        ) : null}
         <p className="article-meta-line">
           {article.readingTime ? `${article.readingTime} min read` : 'Editorial'} • {article.views || 0} views
         </p>
-        <section dangerouslySetInnerHTML={{ __html: article.content || '<p>Content unavailable.</p>' }} />
+        <section
+          className="article-body"
+          dangerouslySetInnerHTML={{
+            __html: prepareArticleBodyHtml(article.content) || '<p>Content unavailable.</p>',
+          }}
+        />
       </article>
 
       <section className="section related-section">
@@ -93,7 +107,11 @@ export function ArticlePage() {
           {related.map((item) => (
             <Link key={item._id} className="feed-card" to={`/${item.category?.slug || 'story'}/${item.slug}`}>
               <div className="feed-media">
-                {item.featuredImage ? <img src={item.featuredImage} alt={item.title} /> : <div className="feed-placeholder">Story</div>}
+                {item.featuredImage ? (
+                  <img src={resolveMediaSrc(item.featuredImage)} alt={item.title} />
+                ) : (
+                  <div className="feed-placeholder">Story</div>
+                )}
               </div>
               <div className="feed-copy">
                 <p className="card-meta">{item.category?.name || 'Story'}</p>
