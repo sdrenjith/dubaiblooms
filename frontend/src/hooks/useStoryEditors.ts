@@ -1,5 +1,7 @@
+import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { adminApi } from '@/lib/api';
+import { useAdminConfirm } from '@/context/AdminConfirmContext';
 import { useAdminToast } from '@/context/AdminToastContext';
 import type { Article } from '@/types/api';
 
@@ -9,13 +11,18 @@ export function useStoryEditors(
   token: string | null,
   baselineArticles: Article[],
   showFeaturedCheckbox: boolean,
-  onSaved?: (updated: Article) => void
+  onSaved?: (updated: Article) => void,
+  onDeleted?: (id: string) => void
 ) {
   const toast = useAdminToast();
+  const askConfirm = useAdminConfirm();
   const [editedStories, setEditedStories] = useState<Article[]>([]);
   const [storyStatuses, setStoryStatuses] = useState<Record<string, StoryStatus>>({});
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const onSavedRef = useRef(onSaved);
+  const onDeletedRef = useRef(onDeleted);
   onSavedRef.current = onSaved;
+  onDeletedRef.current = onDeleted;
 
   useEffect(() => {
     setEditedStories(baselineArticles.map((a) => ({ ...a })));
@@ -76,5 +83,48 @@ export function useStoryEditors(
     [token, editedStories, baselineArticles, showFeaturedCheckbox, toast]
   );
 
-  return { editedStories, updateStoryField, saveStory, storyStatuses };
+  const deleteStory = useCallback(
+    async (id: string) => {
+      if (!token) {
+        return;
+      }
+      const row = editedStories.find((x) => x._id === id);
+      if (!row) {
+        return;
+      }
+      const label = row.title.trim() || 'this story';
+      const confirmed = await askConfirm({
+        title: 'Delete story',
+        message: `“${label}” will be removed permanently. This cannot be undone.`,
+        confirmLabel: 'Delete story',
+        variant: 'danger',
+      });
+      if (!confirmed) {
+        return;
+      }
+      setDeletingId(id);
+      try {
+        await adminApi.deleteArticle(id, token);
+        setEditedStories((prev) => prev.filter((x) => x._id !== id));
+        setStoryStatuses((m) => {
+          const next = { ...m };
+          delete next[id];
+          return next;
+        });
+        onDeletedRef.current?.(id);
+        toast('success', 'Story deleted.');
+      } catch (err) {
+        const msg =
+          axios.isAxiosError(err) && err.response?.data && typeof err.response.data.message === 'string'
+            ? err.response.data.message
+            : 'Could not delete story.';
+        toast('error', msg);
+      } finally {
+        setDeletingId(null);
+      }
+    },
+    [token, editedStories, toast, askConfirm]
+  );
+
+  return { editedStories, updateStoryField, saveStory, deleteStory, storyStatuses, deletingId };
 }

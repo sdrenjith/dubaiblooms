@@ -2,6 +2,7 @@ import axios from 'axios';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { adminApi, contentApi } from '@/lib/api';
+import { useAdminConfirm } from '@/context/AdminConfirmContext';
 import { useAdminToast } from '@/context/AdminToastContext';
 import { notifyAdminCategoriesUpdated } from '@/lib/adminEvents';
 import type { Category } from '@/types/api';
@@ -28,11 +29,14 @@ function rowFromCategory(c: Category): RowState {
 export function AdminCategoriesGridPage() {
   const token = localStorage.getItem('adminToken');
   const toast = useAdminToast();
+  const askConfirm = useAdminConfirm();
   const location = useLocation();
   const [list, setList] = useState<Category[]>([]);
   const [rows, setRows] = useState<Record<string, RowState>>({});
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [storyCountByCategory, setStoryCountByCategory] = useState<Record<string, number>>({});
   const [newName, setNewName] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newOrder, setNewOrder] = useState(0);
@@ -50,6 +54,19 @@ export function AdminCategoriesGridPage() {
       setRows(
         Object.fromEntries(categories.map((c) => [c._id, rowFromCategory(c)]))
       );
+      try {
+        const articles = await adminApi.listArticlesAdmin(token, 500);
+        const counts: Record<string, number> = {};
+        for (const article of articles) {
+          const categoryId = article.category?._id;
+          if (categoryId) {
+            counts[categoryId] = (counts[categoryId] ?? 0) + 1;
+          }
+        }
+        setStoryCountByCategory(counts);
+      } catch {
+        setStoryCountByCategory({});
+      }
     } catch {
       toast('error', 'Unable to load categories.');
       setList([]);
@@ -118,6 +135,44 @@ export function AdminCategoriesGridPage() {
       toast('error', `${row.name.trim() || category.name}: ${msg}`);
     } finally {
       setSavingId(null);
+    }
+  };
+
+  const onDeleteCategory = async (category: Category) => {
+    if (!token) {
+      return;
+    }
+    const storyCount = storyCountByCategory[category._id] ?? 0;
+    if (storyCount > 0) {
+      toast(
+        'error',
+        `${storyCount} ${storyCount === 1 ? 'story' : 'stories'} — delete stories before removing this category. Open Sidebar → ${category.name} → Stories.`
+      );
+      return;
+    }
+    const confirmed = await askConfirm({
+      title: 'Delete category',
+      message: `“${category.name}” and its admin settings will be removed permanently. This cannot be undone.`,
+      confirmLabel: 'Delete category',
+      variant: 'danger',
+    });
+    if (!confirmed) {
+      return;
+    }
+    setDeletingId(category._id);
+    try {
+      await adminApi.deleteCategory(category._id, token);
+      toast('success', `Category “${category.name}” deleted.`);
+      notifyAdminCategoriesUpdated();
+      await refresh();
+    } catch (err) {
+      const msg =
+        axios.isAxiosError(err) && err.response?.data && typeof err.response.data.message === 'string'
+          ? err.response.data.message
+          : 'Could not delete category.';
+      toast('error', msg);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -228,6 +283,7 @@ export function AdminCategoriesGridPage() {
           {list.map((category) => {
             const row = rows[category._id] ?? rowFromCategory(category);
             const busy = savingId === category._id;
+            const isDeleting = deletingId === category._id;
             return (
               <form
                 key={category._id}
@@ -287,14 +343,34 @@ export function AdminCategoriesGridPage() {
                   </label>
                 </div>
                 <div className={styles.cardActions}>
-                  <button className={styles.saveBtn} type="submit" disabled={busy}>
+                  <button
+                    className="admin-story-action-btn admin-story-action-primary"
+                    type="submit"
+                    disabled={busy || isDeleting}
+                  >
                     {busy ? 'Saving…' : 'Save'}
                   </button>
-                  <Link className={styles.viewLink} to={`/admin/pages/category/${category.slug}`}>
-                    Admin page →
+                  <button
+                    type="button"
+                    className="admin-story-action-btn admin-story-action-danger"
+                    disabled={isDeleting || busy}
+                    onClick={() => void onDeleteCategory(category)}
+                  >
+                    {isDeleting ? 'Deleting…' : 'Delete'}
+                  </button>
+                  <Link
+                    className="admin-story-action-btn admin-story-action-secondary"
+                    to={`/admin/pages/category/${category.slug}`}
+                  >
+                    Admin page
                   </Link>
-                  <Link className={styles.viewLink} to={`/category/${category.slug}`} target="_blank" rel="noreferrer">
-                    View public page →
+                  <Link
+                    className={`admin-story-action-btn admin-story-action-secondary ${styles.cardActionFull}`}
+                    to={`/category/${category.slug}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    View public page
                   </Link>
                 </div>
               </form>

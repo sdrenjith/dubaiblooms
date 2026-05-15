@@ -30,12 +30,15 @@ export function AdminHomeSectionPage() {
   }, [categoriesLoadError, toast]);
 
   const showFeatured = !!section && section.source === 'featured';
-  const { editedStories, updateStoryField, saveStory, storyStatuses } = useStoryEditors(
+  const { editedStories, updateStoryField, saveStory, deleteStory, storyStatuses, deletingId } = useStoryEditors(
     token,
     stories,
     showFeatured,
     (updated) => {
       setStories((prev) => prev.map((x) => (x._id === updated._id ? { ...x, ...updated } : x)));
+    },
+    (id) => {
+      setStories((prev) => prev.filter((x) => x._id !== id));
     }
   );
 
@@ -246,6 +249,8 @@ export function AdminHomeSectionPage() {
           editedStories={editedStories}
           updateStoryField={updateStoryField}
           saveStory={saveStory}
+          deleteStory={deleteStory}
+          deletingId={deletingId}
           storyStatuses={storyStatuses}
           showFeaturedCheckbox={section.source === 'featured'}
           storiesLoading={storiesLoading}

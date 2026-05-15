@@ -8,6 +8,8 @@ type Props = {
   editedStories: Article[];
   updateStoryField: (id: string, patch: Partial<Article>) => void;
   saveStory: (id: string) => void | Promise<void>;
+  deleteStory: (id: string) => void | Promise<void>;
+  deletingId: string | null;
   storyStatuses: Record<string, StoryStatus>;
   showFeaturedCheckbox: boolean;
   storiesLoading: boolean;
@@ -21,6 +23,8 @@ export function AdminStoryEditorsList({
   editedStories,
   updateStoryField,
   saveStory,
+  deleteStory,
+  deletingId,
   storyStatuses,
   showFeaturedCheckbox,
   storiesLoading,
@@ -52,6 +56,7 @@ export function AdminStoryEditorsList({
       <div className="admin-home-card-grid">
         {editedStories.map((a) => {
           const status = storyStatuses[a._id] || 'idle';
+          const isDeleting = deletingId === a._id;
           const imgSrc = thumb(a.featuredImage);
           return (
             <article key={a._id} className="admin-item-card admin-story-editor-card">
@@ -110,16 +115,29 @@ export function AdminStoryEditorsList({
                 </label>
               ) : null}
               <div className="admin-story-editor-actions">
-                <a className="button-link" href={articleHref(a)} target="_blank" rel="noreferrer">
-                  Open on site →
+                <a
+                  className="admin-story-action-btn admin-story-action-secondary"
+                  href={articleHref(a)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open on site
                 </a>
                 <button
                   type="button"
-                  className="admin-tiles-btn-primary"
-                  disabled={status === 'saving'}
+                  className="admin-story-action-btn admin-story-action-danger"
+                  disabled={isDeleting || status === 'saving'}
+                  onClick={() => void deleteStory(a._id)}
+                >
+                  {isDeleting ? 'Deleting…' : 'Delete'}
+                </button>
+                <button
+                  type="button"
+                  className="admin-story-action-btn admin-story-action-primary"
+                  disabled={status === 'saving' || isDeleting}
                   onClick={() => void saveStory(a._id)}
                 >
-                  {status === 'saving' ? 'Saving…' : 'Save story'}
+                  {status === 'saving' ? 'Saving…' : 'Save'}
                 </button>
               </div>
             </article>

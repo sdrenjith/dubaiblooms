@@ -294,4 +294,30 @@ export const adminApi = {
     });
     return requireApiData(data, 'Save article');
   },
+
+  deleteArticle: async (id: string, token: string): Promise<void> => {
+    const { data } = await api.delete<ApiResponse<unknown>>(`/articles/${encodeURIComponent(id)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!data?.success) {
+      throw new Error(data?.message || 'Delete story failed');
+    }
+  },
+
+  deleteCategory: async (id: string, token: string): Promise<void> => {
+    const { data } = await api.delete<ApiResponse<unknown>>(`/categories/${encodeURIComponent(id)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!data?.success) {
+      throw new Error(data?.message || 'Delete category failed');
+    }
+  },
+
+  listArticlesAdmin: async (token: string, limit = 500): Promise<Article[]> => {
+    const { data } = await api.get<ApiResponse<Article[]>>('/articles/admin/all', {
+      params: { page: 1, limit },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data?.data ?? [];
+  },
 };

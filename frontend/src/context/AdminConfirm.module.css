@@ -1,0 +1,141 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(28, 24, 18, 0.52);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: adminConfirmFadeIn 180ms ease-out;
+}
+
+.dialog {
+  width: min(420px, 100%);
+  padding: 1.35rem 1.4rem 1.25rem;
+  border-radius: 14px;
+  border: 1px solid var(--silver);
+  background: #ffffff;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 28px 60px -24px rgba(28, 24, 18, 0.35);
+  font-family: var(--font-body);
+  animation: adminConfirmSlideIn 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes adminConfirmFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes adminConfirmSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.title {
+  margin: 0 0 0.65rem;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--gold-strong);
+  letter-spacing: -0.02em;
+}
+
+.message {
+  margin: 0 0 1.25rem;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.cancelBtn,
+.confirmDanger,
+.confirmDefault {
+  min-height: 40px;
+  padding: 0 1.15rem;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.cancelBtn {
+  border: 1px solid var(--silver-strong);
+  background: #ffffff;
+  color: #4a453c;
+}
+
+.cancelBtn:hover {
+  border-color: rgba(185, 146, 63, 0.45);
+  background: #fffef9;
+  color: var(--gold-strong);
+}
+
+.confirmDanger {
+  border: 1px solid #9e2017;
+  background: linear-gradient(145deg, #c0392b 0%, #9e2017 100%);
+  color: #fffef9;
+  box-shadow: 0 6px 18px rgba(158, 32, 23, 0.22);
+}
+
+.confirmDanger:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 8px 22px rgba(158, 32, 23, 0.28);
+}
+
+.confirmDefault {
+  border: 1px solid var(--gold);
+  background: linear-gradient(145deg, #c9a24a 0%, #9f7d36 100%);
+  color: #fffef9;
+}
+
+.confirmDefault:hover {
+  filter: brightness(1.05);
+}
+
+@media (max-width: 420px) {
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .cancelBtn,
+  .confirmDanger,
+  .confirmDefault {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .dialog {
+    animation: none;
+  }
+}

@@ -45,12 +45,15 @@ export function AdminCategoryStoriesPage() {
     void loadStories();
   }, [loadStories]);
 
-  const { editedStories, updateStoryField, saveStory, storyStatuses } = useStoryEditors(
+  const { editedStories, updateStoryField, saveStory, deleteStory, storyStatuses, deletingId } = useStoryEditors(
     token,
     stories,
     false,
     (updated) => {
       setStories((prev) => prev.map((x) => (x._id === updated._id ? { ...x, ...updated } : x)));
+    },
+    (id) => {
+      setStories((prev) => prev.filter((x) => x._id !== id));
     }
   );
 
@@ -162,6 +165,8 @@ export function AdminCategoryStoriesPage() {
         editedStories={editedStories}
         updateStoryField={updateStoryField}
         saveStory={saveStory}
+        deleteStory={deleteStory}
+        deletingId={deletingId}
         storyStatuses={storyStatuses}
         showFeaturedCheckbox={false}
         storiesLoading={storiesLoading}

@@ -183,7 +183,10 @@ export const deleteCategory = async (req: Request, res: Response): Promise<void>
   try {
     const articleCount = await Article.countDocuments({ category: req.params.id });
     if (articleCount > 0) {
-      res.status(400).json({ message: `Cannot delete: ${articleCount} articles use this category` });
+      const noun = articleCount === 1 ? 'story is' : 'stories are';
+      res.status(400).json({
+        message: `Cannot delete this category: ${articleCount} ${noun} still assigned. Delete all stories in this category first.`,
+      });
       return;
     }
     const category = await Category.findByIdAndDelete(req.params.id);

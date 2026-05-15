@@ -9,9 +9,21 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
   align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .card {
@@ -118,47 +130,26 @@
 }
 
 .cardActions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.65rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
   margin-top: 0.85rem;
   padding-top: 0.75rem;
   border-top: 1px solid #ebe8e4;
 }
 
-.saveBtn {
-  border: 1px solid var(--gold);
-  background: var(--gold);
-  color: #fffef9;
-  border-radius: 6px;
-  min-height: 38px;
-  padding: 0 1rem;
-  font-family: var(--font-body);
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  cursor: pointer;
+.cardActionFull {
+  grid-column: 1 / -1;
 }
 
-.saveBtn:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
+@media (max-width: 520px) {
+  .cardActions {
+    grid-template-columns: 1fr;
+  }
 
-.saveBtn:not(:disabled):hover {
-  filter: brightness(1.05);
-}
-
-.viewLink {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--gold-strong);
-  text-decoration: none;
-}
-
-.viewLink:hover {
-  text-decoration: underline;
+  .cardActionFull {
+    grid-column: auto;
+  }
 }
 
 .cardMessage {
