@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { usePageMeta } from '@/hooks/usePageMeta';
 import { contentApi } from '@/lib/api';
 import {
   heroCardHasContent,
   normalizeHeroCardsFromHomepage,
   resolveMarqueeTickerLines,
 } from '@/lib/homepageHero';
+import { resolvePageMeta } from '@/lib/seoMeta';
 import type { Article, Settings } from '@/types/api';
 
 type HomepageTile = {
@@ -127,6 +129,25 @@ export function HomePage() {
         ];
   const googleReviews = settings?.homepage?.googleReviews || [];
   const autoplayMs = Math.max(2500, settings?.homepage?.heroAutoplayMs || 5000);
+
+  const pageMeta = useMemo(() => {
+    if (!settings) {
+      return null;
+    }
+    return resolvePageMeta(
+      settings.pageSeo?.home || {},
+      {
+        title: settings.siteName,
+        description: settings.tagline,
+        image: settings.logo,
+      },
+      settings.seoDefaults,
+      settings.siteName || 'Dubai Blooms',
+      '/'
+    );
+  }, [settings]);
+
+  usePageMeta(pageMeta);
 
   const heroMarqueeText = useMemo(() => {
     return resolveMarqueeTickerLines({

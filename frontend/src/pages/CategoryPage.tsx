@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { usePageMeta } from '@/hooks/usePageMeta';
 import { contentApi } from '@/lib/api';
 import { useSiteData } from '@/hooks/useSiteData';
+import { resolvePageMeta } from '@/lib/seoMeta';
 import type { Article, Category } from '@/types/api';
 
 function getImageUrl(image?: string): string {
@@ -32,6 +34,23 @@ export function CategoryPage() {
     .map((part) => part[0]?.toUpperCase() + part.slice(1))
     .join(' ');
   const [categoryMeta, setCategoryMeta] = useState<Category | null>(null);
+
+  const pageMeta = useMemo(() => {
+    if (!slug) {
+      return null;
+    }
+    const title = categoryMeta?.name || readableCategory;
+    const description = categoryMeta?.description || settings?.tagline || '';
+    return resolvePageMeta(
+      categoryMeta?.seo || {},
+      { title, description, image: categoryMeta?.image },
+      settings?.seoDefaults,
+      settings?.siteName || 'Dubai Blooms',
+      `/category/${slug}`
+    );
+  }, [slug, categoryMeta, readableCategory, settings]);
+
+  usePageMeta(pageMeta);
 
   useEffect(() => {
     if (!slug) {

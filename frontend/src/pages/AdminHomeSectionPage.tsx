@@ -30,7 +30,7 @@ export function AdminHomeSectionPage() {
   }, [categoriesLoadError, toast]);
 
   const showFeatured = !!section && section.source === 'featured';
-  const { editedStories, updateStoryField, saveStory, deleteStory, storyStatuses, deletingId } = useStoryEditors(
+  const { editedStories, updateStoryField, updateStoryMedia, saveStory, deleteStory, storyStatuses, deletingId } = useStoryEditors(
     token,
     stories,
     showFeatured,
@@ -246,8 +246,10 @@ export function AdminHomeSectionPage() {
         </>
       ) : (
         <AdminStoryEditorsList
+          token={token}
           editedStories={editedStories}
           updateStoryField={updateStoryField}
+          updateStoryMedia={updateStoryMedia}
           saveStory={saveStory}
           deleteStory={deleteStory}
           deletingId={deletingId}

@@ -10,6 +10,7 @@ import rateLimit from 'express-rate-limit';
 import { env, getCorsOrigins, getPublicBaseUrl } from './config/env.js';
 import { connectDB, disconnectDB } from './config/db.js';
 import errorHandler from './middleware/errorHandler.js';
+import { createSpaFallback } from './middleware/spaFallback.js';
 import authRoutes from './routes/authRoutes.js';
 import articleRoutes from './routes/articleRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
@@ -109,6 +110,10 @@ app.get('/sitemap.xml', async (_req, res) => {
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// SPA fallback: serve index.html with 200 or 404 based on route validity (nginx @spa)
+const frontendIndexHtml = path.resolve(__dirname, '..', '..', 'frontend', 'dist', 'index.html');
+app.get('*', createSpaFallback(frontendIndexHtml));
 
 // Error handler
 app.use(errorHandler);

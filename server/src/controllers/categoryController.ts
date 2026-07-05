@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import Category from '../models/Category.js';
 import Article from '../models/Article.js';
+import { isValidSlug, normalizeSlug } from '../utils/generateSlug.js';
 
 /** Parse checkbox / JSON booleans; when key absent, caller should not mutate. */
 function parseShowInMainMenu(raw: Record<string, unknown>): boolean | undefined {
@@ -19,6 +20,36 @@ function parseShowInMainMenu(raw: Record<string, unknown>): boolean | undefined 
     return false;
   }
   return undefined;
+}
+
+function applySeoFields(category: { get: (key: string) => unknown; set: (key: string, value: unknown) => void; markModified: (key: string) => void }, raw: unknown): void {
+  if (raw === undefined || raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+    return;
+  }
+  const seo = raw as Record<string, unknown>;
+  const existing =
+    category.get('seo') && typeof category.get('seo') === 'object'
+      ? (category.get('seo') as Record<string, unknown>)
+      : {};
+  category.set('seo', {
+    ...existing,
+    ...(typeof seo.metaTitle === 'string' ? { metaTitle: seo.metaTitle.trim().slice(0, 90) } : {}),
+    ...(typeof seo.metaDescription === 'string'
+      ? { metaDescription: seo.metaDescription.trim().slice(0, 180) }
+      : {}),
+    ...(typeof seo.ogImage === 'string' ? { ogImage: seo.ogImage.trim() } : {}),
+    ...(Array.isArray(seo.keywords)
+      ? {
+          keywords: seo.keywords
+            .map((k) => String(k).trim())
+            .filter(Boolean)
+            .slice(0, 20),
+        }
+      : {}),
+    ...(typeof seo.canonicalPath === 'string' ? { canonicalPath: seo.canonicalPath.trim() } : {}),
+    ...(typeof seo.noIndex === 'boolean' ? { noIndex: seo.noIndex } : {}),
+  });
+  category.markModified('seo');
 }
 
 /** Nav visibility: BSON may omit legacy rows; explicitly false hides. Always send a boolean in JSON. */
@@ -137,16 +168,30 @@ export const updateCategory = async (req: Request, res: Response): Promise<void>
       return;
     }
     const body = req.body as Record<string, unknown>;
-    const { name, description, image, order } = body as {
+    const { name, description, image, order, slug: slugRaw } = body as {
       name?: string;
       description?: string;
       image?: string;
       order?: unknown;
+      slug?: string;
     };
     const parsedMenuFlag = parseShowInMainMenu(body);
 
     if (typeof name === 'string' && name.trim()) {
       category.name = name.trim();
+    }
+    if (Object.prototype.hasOwnProperty.call(body, 'slug')) {
+      const normalized = normalizeSlug(typeof slugRaw === 'string' ? slugRaw : '');
+      if (!isValidSlug(normalized)) {
+        res.status(400).json({ message: 'Invalid URL slug. Use lowercase letters, numbers, and hyphens.' });
+        return;
+      }
+      const existing = await Category.findOne({ slug: normalized, _id: { $ne: category._id } });
+      if (existing) {
+        res.status(400).json({ message: 'This URL slug is already in use by another category' });
+        return;
+      }
+      category.slug = normalized;
     }
     if (typeof description === 'string') {
       category.description = description;
@@ -161,6 +206,9 @@ export const updateCategory = async (req: Request, res: Response): Promise<void>
       category.set('showInMainMenu', parsedMenuFlag);
       category.markModified('showInMainMenu');
     }
+    if (Object.prototype.hasOwnProperty.call(body, 'seo')) {
+      applySeoFields(category, body.seo);
+    }
     await category.save();
 
     /** Ensure `false` is written and returned reliably (mongoose edge cases around optional booleans). */
@@ -174,7 +222,11 @@ export const updateCategory = async (req: Request, res: Response): Promise<void>
       return;
     }
     res.json({ success: true, data: categoryJsonForApi(fresh) });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.code === 11000) {
+      res.status(400).json({ message: 'This URL slug is already in use' });
+      return;
+    }
     res.status(500).json({ message: 'Server error' });
   }
 };

@@ -1,4 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { generateSlug } from '../utils/generateSlug.js';
+import { seoFieldsDefinition } from './seoFields.js';
 
 export interface ICategory extends Document {
   name: string;
@@ -6,6 +8,14 @@ export interface ICategory extends Document {
   description: string;
   image: string;
   order: number;
+  seo: {
+    metaTitle: string;
+    metaDescription: string;
+    ogImage: string;
+    keywords: string[];
+    canonicalPath: string;
+    noIndex: boolean;
+  };
   /** When false, hide from site header/footer category links. Omitted on old rows behaves as shown until saved. */
   showInMainMenu?: boolean;
   createdAt: Date;
@@ -20,16 +30,14 @@ const categorySchema = new Schema<ICategory>(
     image: { type: String, default: '' },
     order: { type: Number, default: 0 },
     showInMainMenu: { type: Boolean, default: false },
+    seo: seoFieldsDefinition,
   },
   { timestamps: true }
 );
 
 categorySchema.pre('save', function (next) {
-  if (this.isModified('name') || !this.slug) {
-    this.slug = this.name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+  if (!this.slug) {
+    this.slug = generateSlug(this.name);
   }
   next();
 });

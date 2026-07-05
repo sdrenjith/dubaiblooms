@@ -3,6 +3,7 @@ import Article from '../models/Article.js';
 import Category from '../models/Category.js';
 import Settings from '../models/Settings.js';
 import { AuthRequest } from '../middleware/auth.js';
+import { isValidSlug, normalizeSlug } from '../utils/generateSlug.js';
 
 export const getArticles = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -157,7 +158,7 @@ export const createArticle = async (req: AuthRequest, res: Response): Promise<vo
     res.status(201).json({ success: true, data: article });
   } catch (error: any) {
     if (error.code === 11000) {
-      res.status(400).json({ message: 'An article with this title already exists' });
+      res.status(400).json({ message: 'This URL slug is already in use' });
       return;
     }
     res.status(500).json({ message: 'Server error' });
@@ -166,7 +167,23 @@ export const createArticle = async (req: AuthRequest, res: Response): Promise<vo
 
 export const updateArticle = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const article = await Article.findByIdAndUpdate(req.params.id, req.body, {
+    const updates: Record<string, unknown> = { ...req.body };
+
+    if (Object.prototype.hasOwnProperty.call(updates, 'slug')) {
+      const normalized = normalizeSlug(String(updates.slug ?? ''));
+      if (!isValidSlug(normalized)) {
+        res.status(400).json({ message: 'Invalid URL slug. Use lowercase letters, numbers, and hyphens.' });
+        return;
+      }
+      const existing = await Article.findOne({ slug: normalized, _id: { $ne: req.params.id } });
+      if (existing) {
+        res.status(400).json({ message: 'This URL slug is already in use by another story' });
+        return;
+      }
+      updates.slug = normalized;
+    }
+
+    const article = await Article.findByIdAndUpdate(req.params.id, updates, {
       new: true,
       runValidators: true,
     })
@@ -179,7 +196,11 @@ export const updateArticle = async (req: AuthRequest, res: Response): Promise<vo
     }
 
     res.json({ success: true, data: article });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.code === 11000) {
+      res.status(400).json({ message: 'This URL slug is already in use' });
+      return;
+    }
     res.status(500).json({ message: 'Server error' });
   }
 };

@@ -45,7 +45,7 @@ export function AdminCategoryStoriesPage() {
     void loadStories();
   }, [loadStories]);
 
-  const { editedStories, updateStoryField, saveStory, deleteStory, storyStatuses, deletingId } = useStoryEditors(
+  const { editedStories, updateStoryField, updateStoryMedia, saveStory, deleteStory, storyStatuses, deletingId } = useStoryEditors(
     token,
     stories,
     false,
@@ -162,8 +162,10 @@ export function AdminCategoryStoriesPage() {
       </section>
 
       <AdminStoryEditorsList
+        token={token}
         editedStories={editedStories}
         updateStoryField={updateStoryField}
+        updateStoryMedia={updateStoryMedia}
         saveStory={saveStory}
         deleteStory={deleteStory}
         deletingId={deletingId}

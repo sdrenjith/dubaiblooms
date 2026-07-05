@@ -70,6 +70,7 @@ function resolveHeroCardsForBackfill(homepage: Record<string, unknown>): unknown
 const TOP_LEVEL_PATCHABLE_KEYS = [
   'siteName',
   'logo',
+  'favicon',
   'tagline',
   'contactInfo',
   'socialLinks',
@@ -77,6 +78,8 @@ const TOP_LEVEL_PATCHABLE_KEYS = [
   'notifications',
   'subscribers',
   'listing',
+  'seoDefaults',
+  'pageSeo',
   'homepage',
 ] as const;
 

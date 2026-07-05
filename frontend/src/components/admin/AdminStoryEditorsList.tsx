@@ -1,12 +1,17 @@
 import type { ReactNode } from 'react';
+import { AdminSeoFieldsEditor } from '@/components/admin/AdminSeoFieldsEditor';
+import { AdminStoryMediaEditor } from '@/components/admin/AdminStoryMediaEditor';
 import { articleHref, thumb } from '@/lib/adminStoryUtils';
-import type { Article } from '@/types/api';
+import { normalizeSlugInput } from '@/lib/slug';
+import type { Article, StoryMediaItem } from '@/types/api';
 
 type StoryStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 type Props = {
+  token: string | null;
   editedStories: Article[];
   updateStoryField: (id: string, patch: Partial<Article>) => void;
+  updateStoryMedia: (id: string, media: StoryMediaItem[]) => void;
   saveStory: (id: string) => void | Promise<void>;
   deleteStory: (id: string) => void | Promise<void>;
   deletingId: string | null;
@@ -20,8 +25,10 @@ type Props = {
 };
 
 export function AdminStoryEditorsList({
+  token,
   editedStories,
   updateStoryField,
+  updateStoryMedia,
   saveStory,
   deleteStory,
   deletingId,
@@ -41,7 +48,8 @@ export function AdminStoryEditorsList({
         {hint ?? (
           <>
             Edit each card below, then use <strong>Save story</strong>. Excerpt is limited to 600 characters. Body is HTML
-            for the main story text on the public page.
+            for the main story text on the public page. Use <strong>Story media</strong> for extra images or videos shown
+            in a sidebar beside the article.
             {showFeaturedCheckbox ? ' “Featured story” controls inclusion in featured feeds.' : ''}
           </>
         )}
@@ -77,6 +85,19 @@ export function AdminStoryEditorsList({
                 />
               </label>
               <label className="admin-story-field">
+                URL slug
+                <input
+                  type="text"
+                  spellCheck={false}
+                  value={a.slug || ''}
+                  onChange={(e) => updateStoryField(a._id, { slug: normalizeSlugInput(e.target.value) })}
+                  placeholder="story-url-slug"
+                />
+                <span className="admin-hint">
+                  Public path: <code>/{a.category?.slug || 'story'}/{a.slug || '…'}</code>
+                </span>
+              </label>
+              <label className="admin-story-field">
                 Excerpt ({a.excerpt.length}/600)
                 <textarea
                   rows={4}
@@ -104,6 +125,30 @@ export function AdminStoryEditorsList({
                   onChange={(e) => updateStoryField(a._id, { featuredImage: e.target.value })}
                 />
               </label>
+              <div className="admin-story-field" style={{ gridColumn: '1 / -1' }}>
+                <AdminStoryMediaEditor
+                  token={token}
+                  media={a.media || []}
+                  onChange={(media) => updateStoryMedia(a._id, media)}
+                />
+              </div>
+              <fieldset className="admin-story-seo-fieldset" style={{ gridColumn: '1 / -1' }}>
+                <legend>SEO (optional)</legend>
+                <p className="admin-story-seo-hint">
+                  Overrides site defaults for this story in search and social previews. Leave blank to use the title and
+                  excerpt.
+                </p>
+                <AdminSeoFieldsEditor
+                  value={a.seo || {}}
+                  onChange={(seo) => updateStoryField(a._id, { seo })}
+                  placeholders={{
+                    metaTitle: a.title,
+                    metaDescription: a.excerpt,
+                    ogImage: a.featuredImage || '',
+                    canonicalPath: `/${a.category?.slug || 'story'}/${a.slug}`,
+                  }}
+                />
+              </fieldset>
               {showFeaturedCheckbox ? (
                 <label className="admin-story-featured-label">
                   <input

@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { contentApi } from '@/lib/api';
+import { authApi, contentApi } from '@/lib/api';
+import { readAdminToken, redirectToAdminLogin } from '@/lib/adminAuth';
 import { ADMIN_CATEGORIES_UPDATED, ADMIN_SITE_SETTINGS_UPDATED } from '@/lib/adminEvents';
 import { resolveMediaSrc } from '@/lib/mediaUrl';
 import { categorySidebarNav } from '@/lib/adminCategoryNav';
@@ -35,8 +36,9 @@ function formatApiFailure(reason: unknown, label: string): string {
 }
 
 export function AdminLayout() {
-  const token = localStorage.getItem('adminToken');
+  const token = readAdminToken();
   const location = useLocation();
+  const [authReady, setAuthReady] = useState(!token);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [siteSettings, setSiteSettings] = useState<Settings | null>(null);
@@ -48,6 +50,29 @@ export function AdminLayout() {
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname, location.hash]);
+
+  useEffect(() => {
+    if (!token) {
+      setAuthReady(true);
+      return;
+    }
+    let cancelled = false;
+    void authApi
+      .getMe(token)
+      .then(() => {
+        if (!cancelled) {
+          setAuthReady(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          redirectToAdminLogin('expired');
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   useEffect(() => {
     if (!sidebarOpen) {
@@ -172,10 +197,6 @@ export function AdminLayout() {
     }
   }, [siteSettings, location.pathname]);
 
-  if (!token) {
-    return <Navigate to="/admin/login" replace state={{ from: location }} />;
-  }
-
   const logout = () => {
     localStorage.removeItem('adminToken');
     window.location.href = '/admin/login';
@@ -238,6 +259,12 @@ export function AdminLayout() {
     if (path.startsWith('/admin/settings')) {
       return 'Site settings';
     }
+    if (path.startsWith('/admin/seo')) {
+      return 'SEO';
+    }
+    if (path.startsWith('/admin/media')) {
+      return 'Media library';
+    }
     if (path.startsWith('/admin/newsletter')) {
       return 'Newsletter';
     }
@@ -245,6 +272,20 @@ export function AdminLayout() {
   }, [location.pathname, categories, siteSettings]);
 
   const homeSubLinks = useMemo(() => homeSidebarNavChunks(siteSettings), [siteSettings]);
+
+  if (!token) {
+    return <Navigate to="/admin/login" replace state={{ from: location }} />;
+  }
+
+  if (!authReady) {
+    return (
+      <div className="admin-login-shell">
+        <div className="admin-auth">
+          <p className="admin-auth-lede">Checking your session…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AdminToastProvider>
@@ -281,6 +322,26 @@ export function AdminLayout() {
                 ◎
               </span>
               Site settings
+            </NavLink>
+            <NavLink
+              to="/admin/seo"
+              className={({ isActive }) => `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`}
+              end
+            >
+              <span className={styles.navIcon} aria-hidden>
+                ◈
+              </span>
+              SEO
+            </NavLink>
+            <NavLink
+              to="/admin/media"
+              className={({ isActive }) => `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`}
+              end
+            >
+              <span className={styles.navIcon} aria-hidden>
+                ▣
+              </span>
+              Media library
             </NavLink>
             <NavLink
               to="/admin/newsletter"

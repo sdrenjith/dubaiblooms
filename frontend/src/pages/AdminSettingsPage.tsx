@@ -11,6 +11,7 @@ const emptySettings: Settings = {
   siteName: '',
   tagline: '',
   logo: '',
+  favicon: '',
   footerText: '',
   notifications: { enabled: true, title: '', message: '' },
   contactInfo: { email: '', phone: '', address: '' },

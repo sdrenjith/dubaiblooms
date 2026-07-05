@@ -1,9 +1,12 @@
 import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { adminApi } from '@/lib/api';
+import { normalizeStoryMedia } from '@/lib/storyMedia';
+import { normalizeArticleSeoForSave } from '@/lib/seoMeta';
+import { isValidSlugInput, normalizeSlugInput } from '@/lib/slug';
 import { useAdminConfirm } from '@/context/AdminConfirmContext';
 import { useAdminToast } from '@/context/AdminToastContext';
-import type { Article } from '@/types/api';
+import type { Article, StoryMediaItem } from '@/types/api';
 
 type StoryStatus = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -25,13 +28,33 @@ export function useStoryEditors(
   onDeletedRef.current = onDeleted;
 
   useEffect(() => {
-    setEditedStories(baselineArticles.map((a) => ({ ...a })));
+    setEditedStories(
+      baselineArticles.map((a) => ({
+        ...a,
+        media: normalizeStoryMedia(a.media),
+      }))
+    );
     setStoryStatuses({});
   }, [baselineArticles]);
 
   const updateStoryField = useCallback((id: string, patch: Partial<Article>) => {
-    setEditedStories((prev) => prev.map((x) => (x._id === id ? { ...x, ...patch } : x)));
+    setEditedStories((prev) =>
+      prev.map((x) => {
+        if (x._id !== id) {
+          return x;
+        }
+        const next = { ...x, ...patch };
+        if (patch.media !== undefined) {
+          next.media = normalizeStoryMedia(patch.media);
+        }
+        return next;
+      })
+    );
   }, []);
+
+  const updateStoryMedia = useCallback((id: string, media: StoryMediaItem[]) => {
+    updateStoryField(id, { media: normalizeStoryMedia(media) });
+  }, [updateStoryField]);
 
   const saveStory = useCallback(
     async (id: string) => {
@@ -49,20 +72,32 @@ export function useStoryEditors(
         toast('error', 'Featured image URL is required before saving.');
         return;
       }
+      const slug = normalizeSlugInput(row.slug || '');
+      if (!isValidSlugInput(slug)) {
+        setStoryStatuses((m) => ({ ...m, [id]: 'error' }));
+        toast('error', 'URL slug is required. Use lowercase letters, numbers, and hyphens.');
+        return;
+      }
       setStoryStatuses((m) => ({ ...m, [id]: 'saving' }));
       try {
         const bodyHtml = (row.content ?? '').trim() || '<p></p>';
         const payload: {
           title: string;
+          slug: string;
           excerpt: string;
           featuredImage: string;
           content: string;
+          media: StoryMediaItem[];
+          seo: NonNullable<Article['seo']>;
           isFeatured?: boolean;
         } = {
           title: row.title.trim(),
+          slug,
           excerpt: row.excerpt.trim().slice(0, 600),
           featuredImage: imageUrl,
           content: bodyHtml,
+          media: normalizeStoryMedia(row.media),
+          seo: normalizeArticleSeoForSave(row.seo),
         };
         if (showFeaturedCheckbox) {
           payload.isFeatured = !!row.isFeatured;
@@ -75,8 +110,12 @@ export function useStoryEditors(
         window.setTimeout(() => {
           setStoryStatuses((m) => ({ ...m, [id]: 'idle' }));
         }, 2200);
-      } catch {
-        toast('error', 'Save failed. Check your connection and try again.');
+      } catch (err) {
+        const msg =
+          axios.isAxiosError(err) && err.response?.data && typeof err.response.data.message === 'string'
+            ? err.response.data.message
+            : 'Save failed. Check your connection and try again.';
+        toast('error', msg);
         setStoryStatuses((m) => ({ ...m, [id]: 'error' }));
       }
     },
@@ -126,5 +165,5 @@ export function useStoryEditors(
     [token, editedStories, toast, askConfirm]
   );
 
-  return { editedStories, updateStoryField, saveStory, deleteStory, storyStatuses, deletingId };
+  return { editedStories, updateStoryField, updateStoryMedia, saveStory, deleteStory, storyStatuses, deletingId };
 }

@@ -13,9 +13,11 @@ import { AdminHomeReviewsPage } from '@/pages/AdminHomeReviewsPage';
 import { AdminHomeSectionPage } from '@/pages/AdminHomeSectionPage';
 import { AdminHomeSectionsManagePage } from '@/pages/AdminHomeSectionsManagePage';
 import { AdminHomeTilesPage } from '@/pages/AdminHomeTilesPage';
+import { AdminMediaLibraryPage } from '@/pages/AdminMediaLibraryPage';
 import { AdminNewsletterSubscribersPage } from '@/pages/AdminNewsletterSubscribersPage';
 import { AdminLoginPage } from '@/pages/AdminLoginPage';
 import { AdminResetPasswordPage } from '@/pages/AdminResetPasswordPage';
+import { AdminSeoPage } from '@/pages/AdminSeoPage';
 import { AdminSettingsPage } from '@/pages/AdminSettingsPage';
 import { ArticlePage } from '@/pages/ArticlePage';
 import { CategoryPage } from '@/pages/CategoryPage';
@@ -30,6 +32,8 @@ export function App() {
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<Navigate to="settings" replace />} />
         <Route path="settings" element={<AdminSettingsPage />} />
+        <Route path="seo" element={<AdminSeoPage />} />
+        <Route path="media" element={<AdminMediaLibraryPage />} />
         <Route path="newsletter" element={<AdminNewsletterSubscribersPage />} />
         <Route path="pages/home" element={<AdminHomeLayout />}>
           <Route index element={<AdminHomeHubPage />} />

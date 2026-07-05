@@ -1,5 +1,7 @@
 import axios from 'axios';
-import type { ApiResponse, Article, Category, PaginatedArticlesResult, Settings, Subscriber } from '@/types/api';
+import { readAdminToken, isAdminAuthFailure, redirectToAdminLogin } from '@/lib/adminAuth';
+import { formatUploadError, validateUploadFileSize } from '@/lib/uploadErrors';
+import type { ApiResponse, Article, Category, PaginatedArticlesResult, Settings, StoryMediaItem, Subscriber } from '@/types/api';
 
 /**
  * Server mounts routes at `/api/*`. Use relative `/api` in dev (Vite proxy) or set
@@ -156,24 +158,202 @@ export const authApi = {
   },
 };
 
-/** POST multipart to `/upload`; avoids default JSON Content-Type on the shared axios instance. */
-export async function uploadAdminImage(file: File, token: string): Promise<string> {
-  const base = resolveApiBaseUrl().replace(/\/$/, '');
-  const uploadUrl = `${base}/upload`;
+function handleAdminAuthError(status?: number, message?: string): void {
+  if (isAdminAuthFailure(status, message)) {
+    redirectToAdminLogin('expired');
+  }
+}
+
+function adminUploadHeaders(token: string): Record<string, string> {
+  return { Authorization: `Bearer ${token}` };
+}
+
+/** Let axios set multipart boundaries — the shared client defaults to JSON Content-Type. */
+const multipartConfig = (token: string) => ({
+  headers: adminUploadHeaders(token),
+  transformRequest: [
+    (data: unknown, headers?: Record<string, unknown>) => {
+      if (headers && typeof headers === 'object') {
+        delete headers['Content-Type'];
+      }
+      return data;
+    },
+  ],
+});
+
+/** POST multipart to `/upload`; uses the shared axios client (same base URL as other admin calls). */
+export async function uploadAdminImage(file: File, token?: string): Promise<string> {
+  const activeToken = (token || readAdminToken()).trim();
+  if (!activeToken) {
+    redirectToAdminLogin('expired');
+    throw new Error('Session expired. Please sign in again.');
+  }
+  const sizeError = validateUploadFileSize(file, 'image');
+  if (sizeError) {
+    throw new Error(sizeError);
+  }
   const body = new FormData();
   body.append('image', file);
-  const res = await fetch(uploadUrl, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    body,
-  });
-  const json = (await res.json()) as { success?: boolean; data?: { url?: string }; message?: string };
-  if (!res.ok || !json?.success || !json.data?.url) {
-    throw new Error(json?.message || `Upload failed (${res.status})`);
+  try {
+    const { data } = await api.post<ApiResponse<{ url: string }>>('/upload', body, multipartConfig(activeToken));
+    const url = data?.data?.url;
+    if (!data?.success || !url) {
+      throw new Error(data?.message || 'Upload failed');
+    }
+    return url;
+  } catch (err) {
+    if (axios.isAxiosError(err)) {
+      const message =
+        err.response?.data && typeof err.response.data === 'object' && 'message' in err.response.data
+          ? String((err.response.data as { message?: string }).message || '')
+          : err.message;
+      handleAdminAuthError(err.response?.status, message);
+    }
+    throw formatUploadError(err, 'image');
   }
-  return json.data.url;
+}
+
+export interface MediaLibraryEntry {
+  url: string;
+  filename: string;
+  type: 'image' | 'video';
+  createdAt: string;
+  size: number;
+  alt?: string;
+}
+
+/** POST multipart image or video to `/upload/media`. */
+export async function uploadAdminMedia(
+  file: File,
+  token?: string
+): Promise<{ url: string; type: 'image' | 'video' }> {
+  const activeToken = (token || readAdminToken()).trim();
+  if (!activeToken) {
+    redirectToAdminLogin('expired');
+    throw new Error('Session expired. Please sign in again.');
+  }
+  const sizeError = validateUploadFileSize(file, 'media');
+  if (sizeError) {
+    throw new Error(sizeError);
+  }
+  const body = new FormData();
+  body.append('file', file);
+  try {
+    const { data } = await api.post<ApiResponse<{ url: string; type: 'image' | 'video' }>>(
+      '/upload/media',
+      body,
+      multipartConfig(activeToken)
+    );
+    const url = data?.data?.url;
+    if (!data?.success || !url) {
+      throw new Error(data?.message || 'Upload failed');
+    }
+    return { url, type: data.data?.type || 'image' };
+  } catch (err) {
+    if (axios.isAxiosError(err)) {
+      const message =
+        err.response?.data && typeof err.response.data === 'object' && 'message' in err.response.data
+          ? String((err.response.data as { message?: string }).message || '')
+          : err.message;
+      handleAdminAuthError(err.response?.status, message);
+    }
+    throw formatUploadError(err, 'media');
+  }
+}
+
+export async function listMediaLibrary(token?: string): Promise<MediaLibraryEntry[]> {
+  const activeToken = (token || readAdminToken()).trim();
+  if (!activeToken) {
+    redirectToAdminLogin('expired');
+    throw new Error('Session expired. Please sign in again.');
+  }
+  try {
+    const { data } = await api.get<ApiResponse<MediaLibraryEntry[]>>('/upload/library', {
+      headers: { Authorization: `Bearer ${activeToken}` },
+    });
+    if (!data?.success) {
+      throw new Error(data?.message || 'Could not load library');
+    }
+    return data.data ?? [];
+  } catch (err) {
+    if (axios.isAxiosError(err)) {
+      const message =
+        err.response?.data && typeof err.response.data === 'object' && 'message' in err.response.data
+          ? String((err.response.data as { message?: string }).message || '')
+          : err.message;
+      handleAdminAuthError(err.response?.status, message);
+      throw new Error(message || `Could not load library (${err.response?.status ?? 'network'})`);
+    }
+    throw err;
+  }
+}
+
+export async function deleteMediaFromLibrary(filename: string, token?: string): Promise<void> {
+  const activeToken = (token || readAdminToken()).trim();
+  if (!activeToken) {
+    redirectToAdminLogin('expired');
+    throw new Error('Session expired. Please sign in again.');
+  }
+  const safeName = filename.trim().replace(/^\/uploads\//, '');
+  if (!safeName || safeName.includes('/') || safeName.includes('..')) {
+    throw new Error('Invalid file name.');
+  }
+  try {
+    const { data } = await api.delete<ApiResponse<{ url: string; filename: string }>>(
+      `/upload/${encodeURIComponent(safeName)}`,
+      { headers: { Authorization: `Bearer ${activeToken}` } }
+    );
+    if (!data?.success) {
+      throw new Error(data?.message || 'Could not delete file');
+    }
+  } catch (err) {
+    if (axios.isAxiosError(err)) {
+      const message =
+        err.response?.data && typeof err.response.data === 'object' && 'message' in err.response.data
+          ? String((err.response.data as { message?: string }).message || '')
+          : err.message;
+      handleAdminAuthError(err.response?.status, message);
+      throw new Error(message || `Could not delete file (${err.response?.status ?? 'network'})`);
+    }
+    throw err;
+  }
+}
+
+export async function updateMediaLibraryAlt(
+  filename: string,
+  alt: string,
+  token?: string
+): Promise<{ filename: string; alt: string }> {
+  const activeToken = (token || readAdminToken()).trim();
+  if (!activeToken) {
+    redirectToAdminLogin('expired');
+    throw new Error('Session expired. Please sign in again.');
+  }
+  const safeName = filename.trim().replace(/^\/uploads\//, '');
+  if (!safeName || safeName.includes('/') || safeName.includes('..')) {
+    throw new Error('Invalid file name.');
+  }
+  try {
+    const { data } = await api.patch<ApiResponse<{ filename: string; alt: string }>>(
+      `/upload/${encodeURIComponent(safeName)}/alt`,
+      { alt: alt.trim().slice(0, 200) },
+      { headers: { Authorization: `Bearer ${activeToken}` } }
+    );
+    if (!data?.success || !data.data) {
+      throw new Error(data?.message || 'Could not save alt text');
+    }
+    return data.data;
+  } catch (err) {
+    if (axios.isAxiosError(err)) {
+      const message =
+        err.response?.data && typeof err.response.data === 'object' && 'message' in err.response.data
+          ? String((err.response.data as { message?: string }).message || '')
+          : err.message;
+      handleAdminAuthError(err.response?.status, message);
+      throw new Error(message || `Could not save alt text (${err.response?.status ?? 'network'})`);
+    }
+    throw err;
+  }
 }
 
 export const adminApi = {
@@ -224,7 +404,15 @@ export const adminApi = {
 
   updateCategory: async (
     id: string,
-    payload: { name?: string; description?: string; image?: string; order?: number; showInMainMenu?: boolean },
+    payload: {
+      name?: string;
+      slug?: string;
+      description?: string;
+      image?: string;
+      order?: number;
+      showInMainMenu?: boolean;
+      seo?: import('@/types/seo').SeoFields;
+    },
     token: string
   ): Promise<Category> => {
     const { data } = await api.put<ApiResponse<Category>>(`/categories/${id}`, payload, {
@@ -259,6 +447,8 @@ export const adminApi = {
       content?: string;
       isPublished?: boolean;
       isFeatured?: boolean;
+      media?: StoryMediaItem[];
+      seo?: Article['seo'];
     },
     token: string
   ): Promise<Article> => {
@@ -270,6 +460,8 @@ export const adminApi = {
       content: payload.content?.trim() || '<p></p>',
       isPublished: payload.isPublished ?? true,
       isFeatured: payload.isFeatured ?? false,
+      media: payload.media ?? [],
+      seo: payload.seo,
       tags: [],
     };
     const { data } = await api.post<ApiResponse<Article>>('/articles', body, {
@@ -282,10 +474,13 @@ export const adminApi = {
     id: string,
     payload: {
       title?: string;
+      slug?: string;
       excerpt?: string;
       featuredImage?: string;
       content?: string;
       isFeatured?: boolean;
+      media?: StoryMediaItem[];
+      seo?: Article['seo'];
     },
     token: string
   ): Promise<Article> => {

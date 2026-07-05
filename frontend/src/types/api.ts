@@ -1,3 +1,5 @@
+import type { SeoFields } from '@/types/seo';
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -19,11 +21,19 @@ export interface Category {
   order?: number;
   /** Omit or true: show in header/footer nav; false hides from nav (URLs still work). */
   showInMainMenu?: boolean;
+  seo?: SeoFields;
 }
 
 export interface Author {
   _id: string;
   name: string;
+}
+
+export interface StoryMediaItem {
+  url: string;
+  type: 'image' | 'video';
+  alt?: string;
+  order?: number;
 }
 
 export interface Article {
@@ -33,6 +43,7 @@ export interface Article {
   excerpt: string;
   content: string;
   featuredImage?: string;
+  media?: StoryMediaItem[];
   category: Category;
   author?: Author;
   tags?: string[];
@@ -41,17 +52,14 @@ export interface Article {
   views?: number;
   isFeatured?: boolean;
   isPublished?: boolean;
-  seo?: {
-    metaTitle?: string;
-    metaDescription?: string;
-    ogImage?: string;
-  };
+  seo?: SeoFields;
 }
 
 export interface Settings {
   siteName: string;
   tagline: string;
   logo: string;
+  favicon?: string;
   footerText: string;
   contactInfo?: {
     email?: string;
@@ -76,6 +84,10 @@ export interface Settings {
   }>;
   listing?: {
     cardsPerPage?: number;
+  };
+  seoDefaults?: SeoFields;
+  pageSeo?: {
+    home?: SeoFields;
   };
   homepage?: {
     heroAutoplayMs?: number;

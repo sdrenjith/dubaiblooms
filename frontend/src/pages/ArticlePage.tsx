@@ -1,12 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { ArticleMediaSidebar } from '@/components/article/ArticleMediaSidebar';
+import { usePageMeta } from '@/hooks/usePageMeta';
+import { useSiteData } from '@/hooks/useSiteData';
 import { contentApi } from '@/lib/api';
 import { prepareArticleBodyHtml } from '@/lib/articleContent';
+import { resolvePageMeta } from '@/lib/seoMeta';
+import { sortedStoryMedia } from '@/lib/storyMedia';
 import { resolveMediaSrc } from '@/lib/mediaUrl';
 import type { Article } from '@/types/api';
 
 export function ArticlePage() {
   const { slug = '' } = useParams();
+  const { settings } = useSiteData();
   const [article, setArticle] = useState<Article | null>(null);
   const [related, setRelated] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +55,22 @@ export function ArticlePage() {
     };
   }, [slug]);
 
+  const pageMeta = useMemo(() => {
+    if (!article) {
+      return null;
+    }
+    const path = `/${article.category?.slug || 'story'}/${article.slug}`;
+    return resolvePageMeta(
+      article.seo || {},
+      { title: article.title, description: article.excerpt, image: article.featuredImage },
+      settings?.seoDefaults,
+      settings?.siteName || 'Dubai Blooms',
+      path
+    );
+  }, [article, settings]);
+
+  usePageMeta(pageMeta);
+
   if (loading) {
     return (
       <div className="page-wrap section">
@@ -69,10 +91,12 @@ export function ArticlePage() {
   }
 
   const heroSrc = resolveMediaSrc(article.featuredImage);
+  const storyMedia = sortedStoryMedia(article);
+  const hasMediaSidebar = storyMedia.length > 0;
 
   return (
     <div className="page-wrap">
-      <article className="article">
+      <article className={`article${hasMediaSidebar ? ' article--with-media' : ''}`}>
         <h1>{article.title}</h1>
         <p className="lede">{article.excerpt}</p>
         {heroSrc ? (
@@ -83,12 +107,17 @@ export function ArticlePage() {
         <p className="article-meta-line">
           {article.readingTime ? `${article.readingTime} min read` : 'Editorial'} • {article.views || 0} views
         </p>
-        <section
-          className="article-body"
-          dangerouslySetInnerHTML={{
-            __html: prepareArticleBodyHtml(article.content) || '<p>Content unavailable.</p>',
-          }}
-        />
+        <div className={`article-layout${hasMediaSidebar ? ' article-layout--with-sidebar' : ''}`}>
+          <div className="article-main">
+            <section
+              className="article-body"
+              dangerouslySetInnerHTML={{
+                __html: prepareArticleBodyHtml(article.content) || '<p>Content unavailable.</p>',
+              }}
+            />
+          </div>
+          {hasMediaSidebar ? <ArticleMediaSidebar media={storyMedia} storyTitle={article.title} /> : null}
+        </div>
       </article>
 
       <section className="section related-section">

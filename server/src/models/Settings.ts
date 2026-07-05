@@ -1,8 +1,10 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { seoFieldsDefinition } from './seoFields.js';
 
 export interface ISettings extends Document {
   siteName: string;
   logo: string;
+  favicon: string;
   tagline: string;
   contactInfo: {
     email: string;
@@ -28,6 +30,24 @@ export interface ISettings extends Document {
   }>;
   listing?: {
     cardsPerPage: number;
+  };
+  seoDefaults?: {
+    metaTitle: string;
+    metaDescription: string;
+    ogImage: string;
+    keywords: string[];
+    canonicalPath: string;
+    noIndex: boolean;
+  };
+  pageSeo?: {
+    home?: {
+      metaTitle: string;
+      metaDescription: string;
+      ogImage: string;
+      keywords: string[];
+      canonicalPath: string;
+      noIndex: boolean;
+    };
   };
   homepage: {
     heroAutoplayMs: number;
@@ -78,6 +98,7 @@ const settingsSchema = new Schema<ISettings>(
   {
     siteName: { type: String, default: 'Dubai Blooms' },
     logo: { type: String, default: '' },
+    favicon: { type: String, default: '' },
     tagline: { type: String, default: 'The Pulse of Dubai' },
     contactInfo: {
       email: { type: String, default: 'marketing@dubaiblooms.ae' },
@@ -106,10 +127,24 @@ const settingsSchema = new Schema<ISettings>(
       ],
       default: [],
     },
-    listing: {
-      cardsPerPage: { type: Number, default: 4, min: 2, max: 24 },
+  listing: {
+    cardsPerPage: { type: Number, default: 4, min: 2, max: 24 },
+  },
+  seoDefaults: {
+    metaTitle: { type: String, default: 'Dubai Blooms — The Pulse of Dubai' },
+    metaDescription: {
+      type: String,
+      default: 'Curated news, culture, lifestyle, food, travel, and things to do across Dubai.',
     },
-    homepage: {
+    ogImage: { type: String, default: '' },
+    keywords: { type: [String], default: [] },
+    canonicalPath: { type: String, default: '' },
+    noIndex: { type: Boolean, default: false },
+  },
+  pageSeo: {
+    home: seoFieldsDefinition,
+  },
+  homepage: {
       heroAutoplayMs: { type: Number, default: 5000 },
       heroCards: {
         type: [
