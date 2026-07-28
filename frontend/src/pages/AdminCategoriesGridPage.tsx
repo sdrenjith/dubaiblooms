@@ -221,7 +221,7 @@ export function AdminCategoriesGridPage() {
         <h1 className="admin-screen-title">Categories</h1>
         <p className="lede admin-screen-lede">
           New categories stay off the public header and footer until you turn on <strong>Show in main menu</strong>. Desks stay available at{' '}
-          <code>/category/…</code> and in the admin sidebar either way.
+          <code>/…</code> and in the admin sidebar either way.
         </p>
         <p className="lede admin-hint" style={{ marginTop: '0.35rem' }}>
           <button className="button-link" type="button" onClick={() => void refresh()} disabled={loading}>
@@ -294,7 +294,7 @@ export function AdminCategoriesGridPage() {
                 <div className={styles.cardHead}>
                   <div>
                     <h2 className={styles.cardTitle}>{category.name}</h2>
-                    <p className={styles.cardSlug}>/category/{category.slug}</p>
+                    <p className={styles.cardSlug}>/{category.slug}</p>
                     <p className={styles.cardNavBadge}>
                       {(row.showInMainMenu ? 'Shown' : 'Hidden') + ' in main menu'}
                     </p>
@@ -366,7 +366,7 @@ export function AdminCategoriesGridPage() {
                   </Link>
                   <Link
                     className={`admin-story-action-btn admin-story-action-secondary ${styles.cardActionFull}`}
-                    to={`/category/${category.slug}`}
+                    to={`/${category.slug}`}
                     target="_blank"
                     rel="noreferrer"
                   >

@@ -53,6 +53,7 @@ export function App() {
       </Route>
       <Route element={<AppShell />}>
         <Route index element={<HomePage />} />
+        <Route path="/:slug" element={<CategoryPage />} />
         <Route path="/category/:slug" element={<CategoryPage />} />
         <Route path="/:categorySlug/:slug" element={<ArticlePage />} />
         <Route path="/admin/*" element={<Navigate to="/admin/login" replace />} />

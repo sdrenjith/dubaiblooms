@@ -13,6 +13,7 @@ const emptySettings: Settings = {
   logo: '',
   favicon: '',
   footerText: '',
+  privacyPolicyHtml: '',
   notifications: { enabled: true, title: '', message: '' },
   contactInfo: { email: '', phone: '', address: '' },
   socialLinks: { facebook: '', twitter: '', instagram: '', linkedin: '' },
@@ -481,6 +482,23 @@ export function AdminSettingsPage() {
             <label>
               Footer Text
               <input value={form.footerText || ''} onChange={(e) => updateField('footerText', e.target.value)} />
+            </label>
+          </section>
+
+          <section className="admin-card admin-card-wide">
+            <h2>Privacy Policy</h2>
+            <p className="admin-hint" style={{ marginTop: 0, marginBottom: '0.75rem' }}>
+              Public page at <code>/privacy-policy</code>. Use HTML for headings and paragraphs (same style as story
+              bodies).
+            </p>
+            <label>
+              Policy content (HTML)
+              <textarea
+                className="admin-story-body-area"
+                rows={18}
+                value={form.privacyPolicyHtml || ''}
+                onChange={(e) => updateField('privacyPolicyHtml', e.target.value)}
+              />
             </label>
           </section>
 

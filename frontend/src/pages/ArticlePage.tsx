@@ -4,6 +4,7 @@ import { ArticleMediaSidebar } from '@/components/article/ArticleMediaSidebar';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useSiteData } from '@/hooks/useSiteData';
 import { contentApi } from '@/lib/api';
+import { formatArticleByline } from '@/lib/articleByline';
 import { prepareArticleBodyHtml } from '@/lib/articleContent';
 import { resolvePageMeta } from '@/lib/seoMeta';
 import { sortedStoryMedia } from '@/lib/storyMedia';
@@ -93,6 +94,20 @@ export function ArticlePage() {
   const heroSrc = resolveMediaSrc(article.featuredImage);
   const storyMedia = sortedStoryMedia(article);
   const hasMediaSidebar = storyMedia.length > 0;
+  const authorName = article.author?.name?.trim();
+  const publishedLabel = article.publishedAt
+    ? new Date(article.publishedAt).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : '';
+  const metaParts = [
+    authorName ? `By ${authorName}` : null,
+    publishedLabel || null,
+    article.readingTime ? `${article.readingTime} min read` : 'Editorial',
+    `${article.views || 0} views`,
+  ].filter(Boolean);
 
   return (
     <div className="page-wrap">
@@ -104,9 +119,7 @@ export function ArticlePage() {
             <img className="article-hero-img" src={heroSrc} alt={article.title} />
           </figure>
         ) : null}
-        <p className="article-meta-line">
-          {article.readingTime ? `${article.readingTime} min read` : 'Editorial'} • {article.views || 0} views
-        </p>
+        <p className="article-meta-line">{metaParts.join(' • ')}</p>
         <div className={`article-layout${hasMediaSidebar ? ' article-layout--with-sidebar' : ''}`}>
           <div className="article-main">
             <section
@@ -145,6 +158,9 @@ export function ArticlePage() {
               <div className="feed-copy">
                 <p className="card-meta">{item.category?.name || 'Story'}</p>
                 <h3>{item.title}</h3>
+                {formatArticleByline(item) ? (
+                  <p className="card-byline">{formatArticleByline(item)}</p>
+                ) : null}
               </div>
             </Link>
           ))}

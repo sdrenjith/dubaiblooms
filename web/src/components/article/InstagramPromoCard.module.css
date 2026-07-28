@@ -1,0 +1,299 @@
+.wrap {
+  display: flex;
+  justify-content: center;
+  padding: 1.75rem 0 0.5rem;
+}
+
+.card {
+  width: min(540px, 100%);
+  background: #fff;
+  border: 1px solid #dbdbdb;
+  border-radius: 4px;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #262626;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+}
+
+.avatarLink {
+  flex-shrink: 0;
+  display: block;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #efefef;
+  border: 1px solid #dbdbdb;
+}
+
+.avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.avatarFallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #8e8e8e;
+  background: linear-gradient(145deg, #fafafa, #efefef);
+}
+
+.identity {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.username {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #262626;
+  text-decoration: none;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.username:hover {
+  opacity: 0.7;
+}
+
+.followers {
+  font-size: 0.75rem;
+  color: #8e8e8e;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewProfile {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.85rem;
+  border-radius: 8px;
+  background: #0095f6;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  line-height: 1.2;
+}
+
+.viewProfile:hover {
+  background: #1877f2;
+}
+
+.media {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background: #fafafa;
+  overflow: hidden;
+}
+
+.mediaLink {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.mediaImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mediaPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(185, 146, 63, 0.18), transparent 45%),
+    linear-gradient(160deg, #f7f5f1, #ebe7e0);
+  color: #8e8e8e;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.navBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: #262626;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  z-index: 2;
+}
+
+.navBtn:hover {
+  background: #fff;
+}
+
+.navPrev {
+  left: 0.65rem;
+}
+
+.navNext {
+  right: 0.65rem;
+}
+
+.dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.75rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.3rem;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.dotActive {
+  background: #0095f6;
+}
+
+.viewMore {
+  display: block;
+  padding: 0.65rem 1rem 0.15rem;
+  color: #00376b;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.viewMore:hover {
+  text-decoration: underline;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0.85rem 0.25rem;
+}
+
+.actionsLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.iconBtn {
+  display: inline-flex;
+  color: #262626;
+  text-decoration: none;
+  line-height: 0;
+}
+
+.iconBtn:hover {
+  opacity: 0.55;
+}
+
+.iconBtn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.likes {
+  display: block;
+  padding: 0.15rem 1rem 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #262626;
+  text-decoration: none;
+}
+
+.likes:hover {
+  opacity: 0.7;
+}
+
+.commentRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.35rem 1rem 0.9rem;
+  border-top: 1px solid #efefef;
+  margin-top: 0.35rem;
+}
+
+.commentPlaceholder {
+  flex: 1;
+  min-width: 0;
+  color: #8e8e8e;
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.commentPlaceholder:hover {
+  color: #262626;
+}
+
+.igMark {
+  flex-shrink: 0;
+  display: inline-flex;
+  color: #262626;
+  opacity: 0.85;
+  text-decoration: none;
+}
+
+.igMark:hover {
+  opacity: 1;
+}
+
+.igMark svg {
+  width: 18px;
+  height: 18px;
+}
+
+@media (max-width: 640px) {
+  .wrap {
+    padding-top: 1.35rem;
+  }
+
+  .header {
+    padding: 0.75rem 0.85rem;
+  }
+
+  .viewProfile {
+    padding: 0.32rem 0.7rem;
+    font-size: 0.75rem;
+  }
+}

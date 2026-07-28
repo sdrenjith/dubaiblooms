@@ -118,7 +118,7 @@ export function Footer() {
           </button>
           <div className={styles.popupBrand}>
             {logoSrc ? (
-              <img className={styles.popupBrandLogo} src={logoSrc} alt={siteName} width={200} height={40} />
+              <img className={styles.popupBrandLogo} src={logoSrc} alt={siteName} width={280} height={46} />
             ) : (
               <>
                 <span className={styles.popupBrandMonogram} aria-hidden>
@@ -197,9 +197,12 @@ export function Footer() {
             </li>
             {categoriesForNav.slice(0, 4).map((category) => (
               <li key={category._id}>
-                <Link to={`/category/${category.slug}`}>{category.name}</Link>
+                <Link to={`/${category.slug}`}>{category.name}</Link>
               </li>
             ))}
+            <li>
+              <Link to="/privacy-policy">Privacy Policy</Link>
+            </li>
           </ul>
         </div>
 
@@ -230,7 +233,15 @@ export function Footer() {
         </div>
       </section>
 
-      <p className={styles.legal}>{settings?.footerText || 'Copyright Dubai Blooms. All rights reserved.'}</p>
+      <p className={styles.legal}>
+        <span>{settings?.footerText || 'Copyright Dubai Blooms. All rights reserved.'}</span>
+        <span className={styles.legalSep} aria-hidden="true">
+          ·
+        </span>
+        <Link to="/privacy-policy" className={styles.legalLink}>
+          Privacy Policy
+        </Link>
+      </p>
     </footer>
   );
 }

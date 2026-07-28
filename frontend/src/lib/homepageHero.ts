@@ -10,6 +10,8 @@ export type HomepageHeroCard = {
   heroLink?: string;
 };
 
+export type HomepageHeroSource = 'cards' | 'featured' | 'latest';
+
 export const emptyHeroCard: HomepageHeroCard = {
   heroImageUrl: '',
   heroTag: '',
@@ -18,6 +20,15 @@ export const emptyHeroCard: HomepageHeroCard = {
   heroButtonLabel: '',
   heroLink: '',
 };
+
+/** Resolve homepage hero source; missing value defaults to `cards` (legacy spotlight behavior). */
+export function resolveHomepageHeroSource(homepage?: Settings['homepage']): HomepageHeroSource {
+  const raw = homepage?.heroSource;
+  if (raw === 'featured' || raw === 'latest' || raw === 'cards') {
+    return raw;
+  }
+  return 'cards';
+}
 
 /** Non-empty custom marquee lines from saved settings (prefers `marqueeLines`, then legacy `marquee`). */
 export function normalizeMarqueeLinesFromHeader(

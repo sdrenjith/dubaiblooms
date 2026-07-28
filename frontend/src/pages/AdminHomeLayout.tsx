@@ -30,6 +30,7 @@ const emptyHomeSlice: Pick<Settings, 'listing' | 'homepage'> = {
   listing: { cardsPerPage: 4 },
   homepage: {
     heroAutoplayMs: 5000,
+    heroSource: 'cards',
     categoryTiles: [],
     sections: [],
     googleReviews: [],

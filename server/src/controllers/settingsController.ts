@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import Settings from '../models/Settings.js';
 import { DEFAULT_HOMEPAGE } from '../seed/homepageDefaults.js';
+import { DEFAULT_PRIVACY_POLICY_HTML } from '../seed/privacyPolicyDefaults.js';
 
 function mongoErrMessage(err: unknown): string {
   if (err instanceof mongoose.Error.ValidationError) {
@@ -32,6 +33,23 @@ function heroCardsMissingOrEmpty(homepage: unknown): boolean {
   }
   const hc = (homepage as { heroCards?: unknown }).heroCards;
   return !Array.isArray(hc) || hc.length === 0;
+}
+
+function resolveHeroSource(homepage: unknown): 'cards' | 'featured' | 'latest' {
+  if (!homepage || typeof homepage !== 'object') {
+    return 'cards';
+  }
+  const raw = (homepage as { heroSource?: unknown }).heroSource;
+  if (raw === 'featured' || raw === 'latest' || raw === 'cards') {
+    return raw;
+  }
+  return 'cards';
+}
+
+/** Spotlight backfill only when hero is cards-mode (never force-seed over featured/latest). */
+function shouldBackfillHeroCards(homepage: unknown): boolean {
+  const source = resolveHeroSource(homepage);
+  return source === 'cards' && heroCardsMissingOrEmpty(homepage);
 }
 
 /** Prefer DB array; else lift legacy `header` hero fields into one card; else seed defaults. */
@@ -75,6 +93,7 @@ const TOP_LEVEL_PATCHABLE_KEYS = [
   'contactInfo',
   'socialLinks',
   'footerText',
+  'privacyPolicyHtml',
   'notifications',
   'subscribers',
   'listing',
@@ -108,6 +127,12 @@ function normalizeHomepagePayload(hp: unknown): unknown {
   const hero = o.heroAutoplayMs;
   const heroAutoplayMs =
     typeof hero === 'string' ? Number(hero) : typeof hero === 'number' ? hero : undefined;
+
+  const heroSourceRaw = o.heroSource;
+  const heroSource =
+    heroSourceRaw === 'featured' || heroSourceRaw === 'latest' || heroSourceRaw === 'cards'
+      ? heroSourceRaw
+      : undefined;
 
   const tiles = Array.isArray(o.categoryTiles)
     ? o.categoryTiles.map((t) => {
@@ -151,6 +176,7 @@ function normalizeHomepagePayload(hp: unknown): unknown {
     googleReviews: reviews,
     ...(normalizedSections !== undefined ? { sections: normalizedSections } : {}),
     ...(heroAutoplayMs !== undefined && !Number.isNaN(heroAutoplayMs) ? { heroAutoplayMs } : {}),
+    ...(heroSource !== undefined ? { heroSource } : {}),
   };
 }
 
@@ -246,14 +272,20 @@ export const getSettings = async (_req: Request, res: Response): Promise<void> =
       delete (prevHeader as { _id?: unknown })._id;
 
       const prevCards = prevHp.heroCards;
+      const heroSource = resolveHeroSource(prevHp);
       const heroCards =
-        Array.isArray(prevCards) && prevCards.length > 0 ? prevCards : DEFAULT_HOMEPAGE.heroCards;
+        heroSource === 'cards' && !(Array.isArray(prevCards) && prevCards.length > 0)
+          ? DEFAULT_HOMEPAGE.heroCards
+          : Array.isArray(prevCards)
+            ? prevCards
+            : [];
 
       settings.set('homepage', {
         ...prevHp,
         heroAutoplayMs:
           (typeof prevHp.heroAutoplayMs === 'number' ? prevHp.heroAutoplayMs : undefined) ??
           DEFAULT_HOMEPAGE.heroAutoplayMs,
+        heroSource: (prevHp.heroSource as string) || DEFAULT_HOMEPAGE.heroSource,
         header: prevHeader,
         heroCards,
         categoryTiles: DEFAULT_HOMEPAGE.categoryTiles,
@@ -271,13 +303,14 @@ export const getSettings = async (_req: Request, res: Response): Promise<void> =
       }
     }
 
-    /** Hero cards were only filled when the whole homepage was empty; typical DBs have tiles/sections/reviews but no heroCards yet. */
-    if (heroCardsMissingOrEmpty(settings.homepage)) {
+    /** Only backfill spotlight cards in cards-mode — never re-seed when editors chose featured/latest. */
+    if (shouldBackfillHeroCards(settings.homepage)) {
       const full = settings.toObject({ flattenMaps: true }) as { homepage?: Record<string, unknown> };
       const prevHp = { ...(full.homepage ?? {}) };
       const heroCards = resolveHeroCardsForBackfill(prevHp);
       settings.set('homepage', {
         ...prevHp,
+        heroSource: resolveHeroSource(prevHp),
         heroCards,
       });
       settings.markModified('homepage');
@@ -285,6 +318,15 @@ export const getSettings = async (_req: Request, res: Response): Promise<void> =
         await settings.save();
       } catch (heroErr) {
         console.error('getSettings heroCards backfill save failed', heroErr);
+      }
+    }
+
+    if (!String(settings.get('privacyPolicyHtml') ?? '').trim()) {
+      settings.set('privacyPolicyHtml', DEFAULT_PRIVACY_POLICY_HTML);
+      try {
+        await settings.save();
+      } catch (privacyErr) {
+        console.error('getSettings privacyPolicyHtml backfill save failed', privacyErr);
       }
     }
 

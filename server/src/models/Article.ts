@@ -15,6 +15,8 @@ export interface IArticle extends Document {
   content: string;
   excerpt: string;
   featuredImage: string;
+  /** Optional Instagram post URL for the under-article promo card. Empty falls back to site Instagram. */
+  instagramPostUrl?: string;
   media: IArticleMedia[];
   category: mongoose.Types.ObjectId;
   tags: string[];
@@ -43,6 +45,7 @@ const articleSchema = new Schema<IArticle>(
     content: { type: String, required: true },
     excerpt: { type: String, required: true, maxlength: 600 },
     featuredImage: { type: String, required: true },
+    instagramPostUrl: { type: String, default: '', trim: true, maxlength: 500 },
     media: {
       type: [
         {

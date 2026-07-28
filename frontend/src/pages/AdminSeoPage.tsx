@@ -137,7 +137,7 @@ export function AdminSeoPage() {
               Category pages
             </h2>
             <p className="lede admin-hint">
-              Each category listing at <code>/category/…</code> has its own SEO section on the category info page.
+              Each category listing at <code>/…</code> has its own SEO section on the category info page.
             </p>
             {categories.length === 0 ? (
               <div className="status-banner">No categories yet.</div>
@@ -148,7 +148,7 @@ export function AdminSeoPage() {
                     <div className="admin-seo-page-list-copy">
                       <strong>{cat.name}</strong>
                       <span>
-                        <code>/category/{cat.slug}</code>
+                        <code>/{cat.slug}</code>
                       </span>
                     </div>
                     <Link className="admin-story-media-btn" to={`${categoryAdminBase(cat.slug)}/info#seo`}>

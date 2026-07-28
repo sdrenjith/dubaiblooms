@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { DEFAULT_PRIVACY_POLICY_HTML } from '../seed/privacyPolicyDefaults.js';
 import { seoFieldsDefinition } from './seoFields.js';
 
 export interface ISettings extends Document {
@@ -18,6 +19,8 @@ export interface ISettings extends Document {
     linkedin: string;
   };
   footerText: string;
+  /** HTML body for the public Privacy Policy page (/privacy-policy). */
+  privacyPolicyHtml: string;
   notifications: {
     enabled: boolean;
     title: string;
@@ -51,6 +54,8 @@ export interface ISettings extends Document {
   };
   homepage: {
     heroAutoplayMs: number;
+    /** Homepage hero carousel source. Default `cards` preserves spotlight heroCards. */
+    heroSource?: 'cards' | 'featured' | 'latest';
     heroCards?: Array<{
       heroImageUrl?: string;
       heroTag?: string;
@@ -112,6 +117,7 @@ const settingsSchema = new Schema<ISettings>(
       linkedin: { type: String, default: '' },
     },
     footerText: { type: String, default: '© 2026 Dubai Blooms. All rights reserved.' },
+    privacyPolicyHtml: { type: String, default: DEFAULT_PRIVACY_POLICY_HTML },
     notifications: {
       enabled: { type: Boolean, default: true },
       title: { type: String, default: 'Latest Updates' },
@@ -146,6 +152,11 @@ const settingsSchema = new Schema<ISettings>(
   },
   homepage: {
       heroAutoplayMs: { type: Number, default: 5000 },
+      heroSource: {
+        type: String,
+        enum: ['cards', 'featured', 'latest'],
+        default: 'cards',
+      },
       heroCards: {
         type: [
           {

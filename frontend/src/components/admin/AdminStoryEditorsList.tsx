@@ -125,6 +125,17 @@ export function AdminStoryEditorsList({
                   onChange={(e) => updateStoryField(a._id, { featuredImage: e.target.value })}
                 />
               </label>
+              <label className="admin-story-field">
+                Instagram post URL
+                <input
+                  type="url"
+                  spellCheck={false}
+                  value={a.instagramPostUrl || ''}
+                  onChange={(e) => updateStoryField(a._id, { instagramPostUrl: e.target.value })}
+                  placeholder="https://www.instagram.com/p/… (optional)"
+                />
+                <span className="admin-hint">Leave empty to use the site-wide Instagram account link.</span>
+              </label>
               <div className="admin-story-field" style={{ gridColumn: '1 / -1' }}>
                 <AdminStoryMediaEditor
                   token={token}

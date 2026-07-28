@@ -90,7 +90,7 @@ export function AdminSeoFieldsEditor({ value, onChange, placeholders, showAdvanc
               spellCheck={false}
               value={seo.canonicalPath || ''}
               onChange={(e) => patch({ canonicalPath: e.target.value })}
-              placeholder={placeholders?.canonicalPath || '/category/news or /news/story-slug'}
+              placeholder={placeholders?.canonicalPath || '/news or /news/story-slug'}
             />
           </label>
           <label className="admin-story-seo-checkbox">

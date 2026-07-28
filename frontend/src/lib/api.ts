@@ -481,6 +481,7 @@ export const adminApi = {
       isFeatured?: boolean;
       media?: StoryMediaItem[];
       seo?: Article['seo'];
+      instagramPostUrl?: string;
     },
     token: string
   ): Promise<Article> => {

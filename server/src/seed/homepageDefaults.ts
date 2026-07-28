@@ -33,6 +33,8 @@ export const DEFAULT_HERO_CARDS = [
 
 export const DEFAULT_HOMEPAGE = {
   heroAutoplayMs: 5000,
+  /** `cards` = spotlight heroCards; `featured` / `latest` = article-driven carousel. */
+  heroSource: 'cards' as const,
   heroCards: DEFAULT_HERO_CARDS,
   categoryTiles: [
     { title: 'Latest updates', subtitle: 'Newsroom highlights', slug: 'news' },

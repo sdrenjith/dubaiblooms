@@ -6,11 +6,14 @@ export function categoryVisibleInMainMenu(c: Pick<Category, 'showInMainMenu'>): 
 }
 
 /**
- * Category hub uses `/category/:slug`; articles use `/:slug/:articleSlug`.
+ * Category hub uses `/:slug`; articles use `/:slug/:articleSlug`.
  * Main nav should stay active on both.
  */
 export function isMainNavCategoryActive(pathname: string, slug: string): boolean {
   const path = pathname.replace(/\/+$/, '') || '/';
+  if (path === `/${slug}`) {
+    return true;
+  }
   if (path === `/category/${slug}` || path.startsWith(`/category/${slug}/`)) {
     return true;
   }

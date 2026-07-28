@@ -39,6 +39,15 @@ export async function resolveSpaRoute(pathname: string): Promise<SpaRouteStatus>
     return category ? 200 : 404;
   }
 
+  if (segments.length === 1) {
+    const slug = segments[0]!;
+    if (!isValidSlug(slug)) {
+      return 404;
+    }
+    const category = await Category.findOne({ slug }).select('_id').lean();
+    return category ? 200 : 404;
+  }
+
   if (segments.length === 2) {
     const [categorySlug, articleSlug] = segments;
     if (!isValidSlug(categorySlug!) || !isValidSlug(articleSlug!)) {

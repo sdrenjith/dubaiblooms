@@ -873,6 +873,16 @@ a {
   letter-spacing: 0.01em;
 }
 
+.card-byline {
+  margin: 0.4rem 0 0;
+  color: #6f7784;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+  text-transform: none;
+}
+
 .feed-card-skeleton {
   pointer-events: none;
   opacity: 0.76;
@@ -2231,6 +2241,24 @@ a.admin-auth-link {
   border: 1px dashed var(--silver-strong);
   min-height: 120px;
   aspect-ratio: 16 / 9;
+}
+
+.admin-hero-source-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 22rem;
+  font-size: 0.9rem;
+  color: #4a453c;
+}
+
+.admin-hero-source-label select {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgba(200, 196, 188, 0.95);
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  background: #fff;
 }
 
 /** Static hero admin: preview + fields inside admin-tile-card */

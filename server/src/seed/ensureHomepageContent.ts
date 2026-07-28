@@ -46,8 +46,11 @@ async function run(): Promise<void> {
       changed = true;
     }
 
-    const hp = settings.homepage as { heroCards?: unknown[] } | undefined;
-    if (!Array.isArray(hp?.heroCards) || hp.heroCards.length === 0) {
+    const hp = settings.homepage as { heroCards?: unknown[]; heroSource?: string } | undefined;
+    const heroSource = hp?.heroSource;
+    /** Only backfill spotlight cards when hero is cards-mode (or unset legacy). */
+    const shouldSeedHeroCards = heroSource !== 'featured' && heroSource !== 'latest';
+    if (shouldSeedHeroCards && (!Array.isArray(hp?.heroCards) || hp.heroCards.length === 0)) {
       settings.set('homepage.heroCards', DEFAULT_HOMEPAGE.heroCards);
       changed = true;
     }

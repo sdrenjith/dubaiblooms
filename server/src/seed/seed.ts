@@ -5,6 +5,7 @@ import Category from '../models/Category.js';
 import Article from '../models/Article.js';
 import Settings from '../models/Settings.js';
 import { DEFAULT_HOMEPAGE, DEFAULT_LISTING } from './homepageDefaults.js';
+import { DEFAULT_PRIVACY_POLICY_HTML } from './privacyPolicyDefaults.js';
 
 /** Thematic Unsplash hero crops for seed articles (ixlib required by CDN). */
 function editorialHero(photoId: string): string {
@@ -516,6 +517,7 @@ const seed = async () => {
         linkedin: 'https://linkedin.com/company/dubaiblooms',
       },
       footerText: '© 2026 Dubai Blooms. All rights reserved.',
+      privacyPolicyHtml: DEFAULT_PRIVACY_POLICY_HTML,
       notifications: {
         enabled: true,
         title: 'Editor Alert',

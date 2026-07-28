@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { contentApi } from '@/lib/api';
+import { formatArticleByline } from '@/lib/articleByline';
 import {
   heroCardHasContent,
   normalizeHeroCardsFromHomepage,
+  resolveHomepageHeroSource,
   resolveMarqueeTickerLines,
 } from '@/lib/homepageHero';
 import { resolvePageMeta } from '@/lib/seoMeta';
@@ -93,10 +95,16 @@ export function HomePage() {
     () => heroCardsResolved.filter((c) => heroCardHasContent(c)),
     [heroCardsResolved]
   );
-  const useStaticHero = staticSlides.length > 0;
-  const carouselStories = featured.length > 0 ? featured.slice(0, 5) : latest.slice(0, 5);
+  const heroSource = resolveHomepageHeroSource(settings?.homepage);
+  const useStaticHero = heroSource === 'cards' && staticSlides.length > 0;
+  const carouselStories =
+    heroSource === 'latest'
+      ? latest.slice(0, 5)
+      : featured.length > 0
+        ? featured.slice(0, 5)
+        : latest.slice(0, 5);
   const sliderStories = useStaticHero ? [] : carouselStories;
-  const leadStory = useStaticHero ? undefined : sliderStories[activeSlide] || featured[0] || latest[0];
+  const leadStory = useStaticHero ? undefined : sliderStories[activeSlide] || sliderStories[0];
   const staticSlide = useStaticHero ? staticSlides[Math.min(activeSlide, staticSlides.length - 1)] : undefined;
   const categoryTiles: HomepageTile[] = settings?.homepage?.categoryTiles?.length
     ? settings.homepage.categoryTiles
@@ -418,7 +426,7 @@ export function HomePage() {
           </header>
           <div className="category-strip">
             {categoryTiles.map((tile, index) => (
-              <Link key={tile.slug} className="category-pill" to={`/category/${tile.slug}`}>
+              <Link key={tile.slug} className="category-pill" to={`/${tile.slug}`}>
                 <span className="category-pill-accent" aria-hidden />
                 <span className="category-index">{`0${index + 1}`.slice(-2)}</span>
                 <h3>{tile.title}</h3>
@@ -537,6 +545,9 @@ export function HomePage() {
                     <div className="feed-copy">
                       <p className="card-meta">{item.category?.name || 'Feature'}</p>
                       <h3>{item.title}</h3>
+                      {formatArticleByline(item) ? (
+                        <p className="card-byline">{formatArticleByline(item)}</p>
+                      ) : null}
                     </div>
                   </Link>
                 ))}

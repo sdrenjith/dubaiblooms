@@ -110,8 +110,8 @@ export function AdminCategoryStoriesPage() {
           Stories in {category.name}
         </h1>
         <p className="lede admin-screen-lede">
-          Add new cards for <code>/category/{category.slug}/…</code> and for homepage blocks that use this category.{' '}
-          <Link className="button-link" to={`/category/${category.slug}`} target="_blank" rel="noreferrer">
+          Add new cards for <code>/{category.slug}/…</code> and for homepage blocks that use this category.{' '}
+          <Link className="button-link" to={`/${category.slug}`} target="_blank" rel="noreferrer">
             View public category →
           </Link>
         </p>

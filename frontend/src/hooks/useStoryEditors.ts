@@ -81,6 +81,12 @@ export function useStoryEditors(
       setStoryStatuses((m) => ({ ...m, [id]: 'saving' }));
       try {
         const bodyHtml = (row.content ?? '').trim() || '<p></p>';
+        const instagramPostUrl = (row.instagramPostUrl || '').trim();
+        if (instagramPostUrl && !/^https?:\/\//i.test(instagramPostUrl)) {
+          setStoryStatuses((m) => ({ ...m, [id]: 'error' }));
+          toast('error', 'Instagram post URL must start with http:// or https://.');
+          return;
+        }
         const payload: {
           title: string;
           slug: string;
@@ -89,6 +95,7 @@ export function useStoryEditors(
           content: string;
           media: StoryMediaItem[];
           seo: NonNullable<Article['seo']>;
+          instagramPostUrl: string;
           isFeatured?: boolean;
         } = {
           title: row.title.trim(),
@@ -98,6 +105,7 @@ export function useStoryEditors(
           content: bodyHtml,
           media: normalizeStoryMedia(row.media),
           seo: normalizeArticleSeoForSave(row.seo),
+          instagramPostUrl,
         };
         if (showFeaturedCheckbox) {
           payload.isFeatured = !!row.isFeatured;

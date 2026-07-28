@@ -14,9 +14,9 @@ export function AdminCategoryHubPage() {
       <div className="admin-screen-intro">
         <h1 className="admin-screen-title">{category.name}</h1>
         <p className="lede admin-screen-lede">
-          Edit this desk (<code>/category/{category.slug}</code>) and add story cards on the Stories page—they also power
+          Edit this desk (<code>/{category.slug}</code>) and add story cards on the Stories page—they also power
           homepage blocks set to Source <strong>category</strong>.{' '}
-          <Link to={`/category/${category.slug}`} className="button-link" target="_blank" rel="noreferrer">
+          <Link to={`/${category.slug}`} className="button-link" target="_blank" rel="noreferrer">
             View live category →
           </Link>
         </p>

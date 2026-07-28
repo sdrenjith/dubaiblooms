@@ -78,7 +78,7 @@ export function AdminCategoryInfoPage() {
       <div className="admin-screen-intro">
         <h1 className="admin-screen-title">Category info</h1>
         <p className="lede admin-screen-lede">
-          Public listing page: <code>/category/{slug || '…'}</code>
+          Public listing page: <code>/{slug || '…'}</code>
         </p>
       </div>
 
@@ -118,7 +118,7 @@ export function AdminCategoryInfoPage() {
         <section className="admin-card admin-card-wide" id="seo" style={{ marginTop: '1.25rem' }}>
           <h2>SEO</h2>
           <p className="lede admin-hint">
-            Meta tags for <code>/category/{slug || '…'}</code>. Leave blank to use site-wide defaults or the category
+            Meta tags for <code>/{slug || '…'}</code>. Leave blank to use site-wide defaults or the category
             name and description above.
           </p>
           <AdminSeoFieldsEditor
@@ -128,7 +128,7 @@ export function AdminCategoryInfoPage() {
               metaTitle: name,
               metaDescription: description,
               ogImage: image,
-              canonicalPath: `/category/${slug || category.slug}`,
+              canonicalPath: `/${slug || category.slug}`,
             }}
           />
           <button className="admin-save" type="submit" disabled={saving} style={{ marginTop: '1rem' }}>

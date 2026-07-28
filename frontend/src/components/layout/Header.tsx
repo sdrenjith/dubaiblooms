@@ -113,7 +113,7 @@ export function Header() {
 
         <Link className={styles.brand} to="/">
           {logoSrc ? (
-            <img className={styles.brandLogoImg} src={logoSrc} alt={siteName} width={220} height={48} />
+            <img className={styles.brandLogoImg} src={logoSrc} alt={siteName} width={280} height={46} />
           ) : (
             <>
               <span className={styles.brandMonogram}>B</span>
@@ -140,7 +140,7 @@ export function Header() {
                 `${styles.navItem} ${isActive || isMainNavCategoryActive(pathname, category.slug) ? styles.active : ''}`
               }
               onClick={() => setIsOpen(false)}
-              to={`/category/${category.slug}`}
+              to={`/${category.slug}`}
             >
               {category.name}
             </NavLink>
@@ -199,7 +199,7 @@ export function Header() {
                       type="button"
                       className={styles.searchItem}
                       onClick={() => {
-                        navigate(`/category/${category.slug}`);
+                          navigate(`/${category.slug}`);
                         closeSearch();
                       }}
                     >
@@ -216,7 +216,7 @@ export function Header() {
                       type="button"
                       className={styles.searchItem}
                       onClick={() => {
-                        navigate(`/category/${tile.slug}`);
+                        navigate(`/${tile.slug}`);
                         closeSearch();
                       }}
                     >

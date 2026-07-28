@@ -43,6 +43,8 @@ export interface Article {
   excerpt: string;
   content: string;
   featuredImage?: string;
+  /** Optional Instagram post URL for the under-article promo card. */
+  instagramPostUrl?: string;
   media?: StoryMediaItem[];
   category: Category;
   author?: Author;
@@ -61,6 +63,8 @@ export interface Settings {
   logo: string;
   favicon?: string;
   footerText: string;
+  /** HTML for the public Privacy Policy page. */
+  privacyPolicyHtml?: string;
   contactInfo?: {
     email?: string;
     phone?: string;
@@ -91,6 +95,8 @@ export interface Settings {
   };
   homepage?: {
     heroAutoplayMs?: number;
+    /** Homepage hero: spotlight cards, featured articles, or latest published. Default `cards`. */
+    heroSource?: 'cards' | 'featured' | 'latest';
     /** Top bar + marquee; legacy hero image/copy may still exist here until migrated to `heroCards`. */
     header?: {
       topBarLeft?: string;

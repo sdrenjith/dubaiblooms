@@ -144,6 +144,19 @@ vite.config.ts.timestamp-*
 
 # --- Dubai Blooms (Node / Vite / Express / Mongo) ---
 
+# Generic build output dirs (besides build/Release above)
+build/
+
+# PM2 process dump (created by `pm2 save` in project cwd)
+dump.pm2
+
+# Temp files
+tmp/
+temp/
+*.tmp
+*.temp
+
+
 # User uploads and media metadata (not frontend/public static SEO assets)
 server/uploads/
 

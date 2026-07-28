@@ -46,7 +46,7 @@ export function CategoryPage() {
       { title, description, image: categoryMeta?.image },
       settings?.seoDefaults,
       settings?.siteName || 'Dubai Blooms',
-      `/category/${slug}`
+      `/${slug}`
     );
   }, [slug, categoryMeta, readableCategory, settings]);
 
