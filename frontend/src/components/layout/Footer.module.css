@@ -339,8 +339,13 @@
   border: 1px solid #bfc7d2;
   background: #ffffff;
   color: #6c7785;
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
+}
+
+.socialIcon {
+  width: 16px;
+  height: 16px;
+  display: block;
+  flex-shrink: 0;
 }
 
 .socials a:hover {

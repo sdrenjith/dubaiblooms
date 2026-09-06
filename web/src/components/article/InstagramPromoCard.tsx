@@ -7,14 +7,18 @@ const DEFAULT_INSTAGRAM = 'https://www.instagram.com/dubai.blooms?igsh=MXM0bGR4Z
 
 export type InstagramPromoCardProps = {
   profileUrl?: string | null;
-  /** Per-article Instagram post URL. When set, primary outbound links use this instead of the profile. */
+  /** Instagram post URL. When set, primary outbound links use this instead of the profile. */
   postUrl?: string | null;
   username?: string | null;
   followerLabel?: string | null;
   avatarSrc?: string | null;
   images?: string[];
   previewAlt?: string;
+  /** When true, use in-content margins (shortcode embed). */
+  embedded?: boolean;
 };
+
+const INSTAGRAM_HOSTS = new Set(['instagram.com', 'www.instagram.com', 'instagr.am', 'www.instagr.am']);
 
 function normalizeInstagramUrl(raw?: string | null): string | null {
   const value = raw?.trim();
@@ -22,6 +26,38 @@ function normalizeInstagramUrl(raw?: string | null): string | null {
     return value;
   }
   return null;
+}
+
+/** Official embed URL for /p/ or /reel/ links, including query strings like ?igsh=. */
+export function instagramPostEmbedSrc(raw?: string | null): string | null {
+  const value = normalizeInstagramUrl(raw);
+  if (!value) {
+    return null;
+  }
+  try {
+    const url = new URL(value);
+    if (!INSTAGRAM_HOSTS.has(url.hostname.toLowerCase())) {
+      return null;
+    }
+    const segments = url.pathname.split('/').filter(Boolean);
+    const kind = segments[0]?.toLowerCase();
+    const shortcode = segments[1];
+    if (!kind || !shortcode || !/^[A-Za-z0-9_-]+$/.test(shortcode)) {
+      return null;
+    }
+    if (kind === 'p') {
+      return `https://www.instagram.com/p/${shortcode}/embed/`;
+    }
+    if (kind === 'reel' || kind === 'reels') {
+      return `https://www.instagram.com/reel/${shortcode}/embed/`;
+    }
+    if (kind === 'tv') {
+      return `https://www.instagram.com/tv/${shortcode}/embed/`;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 function normalizeProfileUrl(raw?: string | null): string {
@@ -102,11 +138,16 @@ export function InstagramPromoCard({
   avatarSrc,
   images = [],
   previewAlt = 'Dubai Blooms on Instagram',
+  embedded = false,
 }: InstagramPromoCardProps) {
   const profileHref = normalizeProfileUrl(profileUrl);
   const postHref = normalizeInstagramUrl(postUrl) || profileHref;
+  const embedSrc = useMemo(() => instagramPostEmbedSrc(postUrl), [postUrl]);
   const handle = deriveUsername(profileHref, username);
-  const slides = useMemo(() => images.map((src) => src.trim()).filter(Boolean), [images]);
+  const slides = useMemo(
+    () => (embedSrc ? [] : images.map((src) => src.trim()).filter(Boolean)),
+    [embedSrc, images]
+  );
   const [index, setIndex] = useState(0);
   const safeIndex = slides.length ? Math.min(index, slides.length - 1) : 0;
   const currentSrc = slides[safeIndex] || '';
@@ -123,7 +164,10 @@ export function InstagramPromoCard({
   };
 
   return (
-    <aside className={styles.wrap} aria-label="Follow Dubai Blooms on Instagram">
+    <aside
+      className={`${styles.wrap}${embedded ? ` ${styles.embedded}` : ''}`}
+      aria-label="Follow Dubai Blooms on Instagram"
+    >
       <div className={styles.card}>
         <div className={styles.header}>
           <a className={styles.avatarLink} href={profileHref} target="_blank" rel="noopener noreferrer" aria-label={`${handle} on Instagram`}>
@@ -145,13 +189,27 @@ export function InstagramPromoCard({
         </div>
 
         <div className={styles.media}>
-          <a className={styles.mediaLink} href={postHref} target="_blank" rel="noopener noreferrer" tabIndex={-1}>
-            {currentSrc ? (
-              <img className={styles.mediaImg} src={currentSrc} alt={previewAlt} />
-            ) : (
-              <div className={styles.mediaPlaceholder}>Instagram</div>
-            )}
-          </a>
+          {embedSrc ? (
+            <iframe
+              className={styles.mediaEmbed}
+              src={embedSrc}
+              title={previewAlt || 'Instagram post'}
+              width={440}
+              height={680}
+              loading="lazy"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          ) : (
+            <a className={styles.mediaLink} href={postHref} target="_blank" rel="noopener noreferrer" tabIndex={-1}>
+              {currentSrc ? (
+                <img className={styles.mediaImg} src={currentSrc} alt={previewAlt} />
+              ) : (
+                <div className={styles.mediaPlaceholder}>Instagram</div>
+              )}
+            </a>
+          )}
           {multi ? (
             <>
               <button type="button" className={`${styles.navBtn} ${styles.navPrev}`} onClick={() => go(-1)} aria-label="Previous image">

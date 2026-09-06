@@ -1,9 +1,13 @@
 import Article from '../models/Article.js';
 import Category from '../models/Category.js';
+import User from '../models/User.js';
 
 export const generateSitemap = async (baseUrl: string): Promise<string> => {
   const articles = await Article.find({ isPublished: true }).populate('category').select('slug category updatedAt');
   const categories = await Category.find().select('slug updatedAt');
+  const authors = await User.find({ slug: { $exists: true, $nin: [null, ''] } })
+    .select('slug updatedAt')
+    .lean();
 
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
   xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
@@ -17,6 +21,15 @@ export const generateSitemap = async (baseUrl: string): Promise<string> => {
   // Category pages
   for (const cat of categories) {
     xml += `  <url>\n    <loc>${baseUrl}/${cat.slug}</loc>\n    <lastmod>${cat.updatedAt.toISOString()}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+  }
+
+  // Author pages
+  for (const author of authors) {
+    if (!author.slug) {
+      continue;
+    }
+    const lastmod = author.updatedAt ? author.updatedAt.toISOString() : new Date().toISOString();
+    xml += `  <url>\n    <loc>${baseUrl}/author/${author.slug}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.5</priority>\n  </url>\n`;
   }
 
   // Article pages

@@ -4,6 +4,7 @@ import { adminApi, authApi, contentApi, uploadAdminImage } from '@/lib/api';
 import { notifyAdminSiteSettingsUpdated } from '@/lib/adminEvents';
 import { useAdminToast } from '@/context/AdminToastContext';
 import { resolveMediaSrc } from '@/lib/mediaUrl';
+import { isValidSlugInput, normalizeSlugInput } from '@/lib/slug';
 import type { AdminUserRow, AuthUser } from '@/lib/api';
 import type { Settings } from '@/types/api';
 
@@ -36,16 +37,21 @@ export function AdminSettingsPage() {
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
 
   const [profileName, setProfileName] = useState('');
+  const [profileSlug, setProfileSlug] = useState('');
+  const [profileBio, setProfileBio] = useState('');
+  const [profileAvatar, setProfileAvatar] = useState('');
   const [profileCurrentPassword, setProfileCurrentPassword] = useState('');
   const [profileNewPassword, setProfileNewPassword] = useState('');
   const [profileConfirmPassword, setProfileConfirmPassword] = useState('');
   const [profileSubmitting, setProfileSubmitting] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   const [teamUsers, setTeamUsers] = useState<AdminUserRow[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
 
   const [logoUploading, setLogoUploading] = useState(false);
   const logoFileInputId = useId();
+  const avatarFileInputId = useId();
 
   const loadTeamUsers = useCallback(async () => {
     if (!token) {
@@ -96,6 +102,9 @@ export function AdminSettingsPage() {
   useEffect(() => {
     if (sessionUser) {
       setProfileName(sessionUser.name);
+      setProfileSlug(sessionUser.slug || '');
+      setProfileBio(sessionUser.bio || '');
+      setProfileAvatar(sessionUser.avatar || '');
     }
   }, [sessionUser]);
 
@@ -114,16 +123,70 @@ export function AdminSettingsPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const buildProfilePayload = (): {
+    name: string;
+    slug: string;
+    bio: string;
+    avatar: string;
+  } | null => {
+    const nameTrim = profileName.trim();
+    const slugTrim = normalizeSlugInput(profileSlug);
+    if (!nameTrim) {
+      toast('error', 'Display name cannot be empty.');
+      return null;
+    }
+    if (!isValidSlugInput(slugTrim)) {
+      toast('error', 'Author slug is required. Use lowercase letters, numbers, and hyphens.');
+      return null;
+    }
+    return {
+      name: nameTrim,
+      slug: slugTrim,
+      bio: profileBio,
+      avatar: profileAvatar.trim(),
+    };
+  };
+
+  const applySavedProfile = (user: AuthUser) => {
+    setSessionUser(user);
+    setProfileName(user.name);
+    setProfileSlug(user.slug || '');
+    setProfileBio(user.bio || '');
+    setProfileAvatar(user.avatar || '');
+  };
+
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!token) {
+      return;
+    }
+    // Profile sits on this same page above site settings; "Save all settings" must persist it too.
+    let profilePayload: ReturnType<typeof buildProfilePayload> = null;
+    if (sessionUser) {
+      profilePayload = buildProfilePayload();
+      if (!profilePayload) {
+        return;
+      }
+    }
     setSaving(true);
     try {
+      if (profilePayload) {
+        const user = await authApi.updateMyProfile(token, profilePayload);
+        applySavedProfile(user);
+      }
       const updated = await adminApi.updateSettings(form, token);
       setForm(updated);
-      toast('success', 'Settings saved successfully.');
+      toast(
+        'success',
+        profilePayload ? 'Settings and your author profile were saved.' : 'Settings saved successfully.'
+      );
       notifyAdminSiteSettingsUpdated();
-    } catch {
-      toast('error', 'Failed to save settings. Please verify admin token/session.');
+    } catch (err) {
+      const msg =
+        axios.isAxiosError(err) && err.response?.data && typeof err.response.data.message === 'string'
+          ? err.response.data.message
+          : 'Failed to save settings. Please verify admin token/session.';
+      toast('error', msg);
     } finally {
       setSaving(false);
     }
@@ -176,7 +239,10 @@ export function AdminSettingsPage() {
     if (!token || !sessionUser) {
       return;
     }
-    const nameTrim = profileName.trim();
+    const profilePayload = buildProfilePayload();
+    if (!profilePayload) {
+      return;
+    }
     if (profileNewPassword) {
       if (profileNewPassword.length < 6) {
         toast('error', 'New password must be at least 6 characters.');
@@ -191,27 +257,33 @@ export function AdminSettingsPage() {
         return;
       }
     }
-    const payload: { name?: string; currentPassword?: string; newPassword?: string } = {};
-    if (nameTrim !== sessionUser.name) {
-      payload.name = nameTrim;
+    const unchanged =
+      profilePayload.name === sessionUser.name &&
+      profilePayload.slug === (sessionUser.slug || '') &&
+      profilePayload.bio === (sessionUser.bio || '') &&
+      profilePayload.avatar === (sessionUser.avatar || '') &&
+      !profileNewPassword;
+    if (unchanged) {
+      toast('error', 'No changes to save.');
+      return;
     }
+    // Always send full profile fields so bio/slug/avatar cannot be dropped by a stale session compare.
+    const payload: {
+      name: string;
+      slug: string;
+      bio: string;
+      avatar: string;
+      currentPassword?: string;
+      newPassword?: string;
+    } = { ...profilePayload };
     if (profileNewPassword) {
       payload.currentPassword = profileCurrentPassword;
       payload.newPassword = profileNewPassword;
     }
-    if (Object.keys(payload).length === 0) {
-      toast('error', 'No changes to save.');
-      return;
-    }
-    if (!nameTrim) {
-      toast('error', 'Display name cannot be empty.');
-      return;
-    }
     setProfileSubmitting(true);
     try {
       const user = await authApi.updateMyProfile(token, payload);
-      setSessionUser(user);
-      setProfileName(user.name);
+      applySavedProfile(user);
       toast('success', 'Your profile was updated.');
       setProfileCurrentPassword('');
       setProfileNewPassword('');
@@ -242,8 +314,9 @@ export function AdminSettingsPage() {
           <section className="admin-card admin-card-wide" style={{ marginBottom: '1.5rem' }}>
             <h2>Your account</h2>
             <p className="lede admin-hint">
-              Signed in as <strong>{sessionUser.email}</strong> ({sessionUser.role}). Update your display name or password below.
-              Email cannot be changed here.
+              Signed in as <strong>{sessionUser.email}</strong> ({sessionUser.role}). Update your public author profile,
+              display name, or password below. Email cannot be changed here. Use <strong>Save profile</strong> here, or
+              <strong> Save all settings</strong> at the bottom (that also saves this author profile).
             </p>
             <form className="admin-form-grid" onSubmit={onProfileSubmit} style={{ marginTop: '0.75rem' }}>
               <label>
@@ -255,6 +328,100 @@ export function AdminSettingsPage() {
                   required
                 />
               </label>
+              <label>
+                Author URL slug
+                <input
+                  spellCheck={false}
+                  value={profileSlug}
+                  onChange={(e) => setProfileSlug(normalizeSlugInput(e.target.value))}
+                  placeholder="your-name"
+                  required
+                />
+                <span className="admin-hint">
+                  Public page: <code>/author/{profileSlug || '…'}</code>
+                </span>
+              </label>
+              <label style={{ gridColumn: '1 / -1' }}>
+                Short bio
+                <textarea
+                  rows={4}
+                  maxLength={4000}
+                  value={profileBio}
+                  onChange={(e) => setProfileBio(e.target.value)}
+                  placeholder="A short introduction shown on your public author page"
+                />
+              </label>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <p style={{ margin: '0 0 0.35rem', fontWeight: 600 }}>Profile photo</p>
+                <p className="lede admin-hint" style={{ marginTop: 0 }}>
+                  Circular avatar on your public author page. Upload an image or paste a URL.
+                </p>
+                {profileAvatar.trim() ? (
+                  <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                    <img
+                      src={resolveMediaSrc(profileAvatar)}
+                      alt=""
+                      style={{
+                        width: 72,
+                        height: 72,
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: '1px solid #c3c4c7',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="admin-logo-remove-btn"
+                      disabled={avatarUploading || profileSubmitting}
+                      onClick={() => setProfileAvatar('')}
+                    >
+                      Remove photo
+                    </button>
+                  </div>
+                ) : null}
+                <label style={{ display: 'block', marginTop: '0.65rem' }}>
+                  Image URL
+                  <input
+                    type="text"
+                    spellCheck={false}
+                    value={profileAvatar}
+                    onChange={(e) => setProfileAvatar(e.target.value)}
+                    placeholder="/uploads/… or https://…"
+                  />
+                </label>
+                <div className="admin-logo-upload-wrap" style={{ marginTop: '0.65rem' }}>
+                  <input
+                    id={avatarFileInputId}
+                    className="admin-file-input-hidden"
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                    disabled={avatarUploading}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = '';
+                      if (!file || !token) {
+                        return;
+                      }
+                      setAvatarUploading(true);
+                      try {
+                        const url = await uploadAdminImage(file, token);
+                        setProfileAvatar(url);
+                        toast('success', 'Photo uploaded. Click “Save profile” to keep it.');
+                      } catch (err) {
+                        toast('error', err instanceof Error ? err.message : 'Upload failed.');
+                      } finally {
+                        setAvatarUploading(false);
+                      }
+                    }}
+                  />
+                  <label
+                    htmlFor={avatarFileInputId}
+                    className={`admin-logo-upload-btn${avatarUploading ? ' admin-logo-upload-btn--disabled' : ''}`}
+                  >
+                    {avatarUploading ? 'Uploading…' : 'Upload photo'}
+                  </label>
+                </div>
+              </div>
               <label>
                 Current password (required only to change password)
                 <input
@@ -285,7 +452,7 @@ export function AdminSettingsPage() {
                   minLength={6}
                 />
               </label>
-              <button className="admin-save" type="submit" disabled={profileSubmitting}>
+              <button className="admin-save" type="submit" disabled={profileSubmitting || avatarUploading}>
                 {profileSubmitting ? 'Saving…' : 'Save profile'}
               </button>
             </form>
@@ -362,7 +529,10 @@ export function AdminSettingsPage() {
                 {usersLoading ? 'Refreshing…' : 'Refresh list'}
               </button>
             </div>
-            <p className="lede admin-hint">All users who can sign in to the admin area.</p>
+            <p className="lede admin-hint">
+              All users who can sign in to the admin area. Each person edits their own public author profile under
+              “Your account”.
+            </p>
             {usersLoading && teamUsers.length === 0 ? <div className="status-banner">Loading users…</div> : null}
             {teamUsers.length > 0 ? (
               <div style={{ overflowX: 'auto', marginTop: '0.75rem' }}>
@@ -370,6 +540,7 @@ export function AdminSettingsPage() {
                   <thead>
                     <tr style={{ textAlign: 'left', borderBottom: '1px solid #c3c4c7' }}>
                       <th style={{ padding: '0.5rem 0.75rem 0.5rem 0' }}>Name</th>
+                      <th style={{ padding: '0.5rem 0.75rem' }}>Author slug</th>
                       <th style={{ padding: '0.5rem 0.75rem' }}>Email</th>
                       <th style={{ padding: '0.5rem 0.75rem' }}>Role</th>
                       <th style={{ padding: '0.5rem 0 0.5rem 0.75rem' }}>Joined</th>
@@ -379,6 +550,15 @@ export function AdminSettingsPage() {
                     {teamUsers.map((u) => (
                       <tr key={u.id} style={{ borderBottom: '1px solid #e8e8e8' }}>
                         <td style={{ padding: '0.55rem 0.75rem 0.55rem 0' }}>{u.name}</td>
+                        <td style={{ padding: '0.55rem 0.75rem' }}>
+                          {u.slug ? (
+                            <a href={`/author/${u.slug}`} target="_blank" rel="noreferrer">
+                              {u.slug}
+                            </a>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
                         <td style={{ padding: '0.55rem 0.75rem' }}>{u.email}</td>
                         <td style={{ padding: '0.55rem 0.75rem' }}>{u.role}</td>
                         <td style={{ padding: '0.55rem 0 0.55rem 0.75rem', color: '#646970' }}>

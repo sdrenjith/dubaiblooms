@@ -1,9 +1,23 @@
 import type { Metadata, Viewport } from 'next';
+import { Inter, Josefin_Sans } from 'next/font/google';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { ScrollTopButton } from '@/components/layout/ScrollTopButton';
 import { contentApi } from '@/lib/api';
 import './globals.css';
+
+const inter = Inter({
+  subsets: ['latin', 'latin-ext'],
+  display: 'swap',
+  variable: '--font-inter',
+});
+
+const josefinSans = Josefin_Sans({
+  subsets: ['latin', 'latin-ext'],
+  display: 'swap',
+  variable: '--font-josefin-sans',
+  weight: ['400', '500', '600', '700'],
+});
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -26,7 +40,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const [settings, categories] = await Promise.all([contentApi.settings(), contentApi.categories()]);
 
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${josefinSans.variable}`}>
       <head>
         {/* Google Tag Manager */}
         <script

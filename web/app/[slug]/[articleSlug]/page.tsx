@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArticleMediaSidebar } from '@/components/article/ArticleMediaSidebar';
-import { InstagramPromoCard } from '@/components/article/InstagramPromoCard';
+import { InstagramEmbedHydrator } from '@/components/article/InstagramEmbedHydrator';
 import { contentApi } from '@/lib/api';
 import { formatArticleByline } from '@/lib/articleByline';
 import { prepareArticleBodyHtml } from '@/lib/articleContent';
@@ -64,6 +64,7 @@ export default async function Page({ params }: Props) {
   const storyMedia = sortedStoryMedia(article);
   const hasMediaSidebar = storyMedia.length > 0;
   const authorName = article.author?.name?.trim();
+  const authorSlug = article.author?.slug?.trim();
   const publishedLabel = article.publishedAt
     ? new Date(article.publishedAt).toLocaleDateString('en-US', {
         month: 'short',
@@ -71,23 +72,13 @@ export default async function Page({ params }: Props) {
         year: 'numeric',
       })
     : '';
-  const metaParts = [
-    authorName ? `By ${authorName}` : null,
+  const trailingMeta = [
     publishedLabel || null,
     article.readingTime ? `${article.readingTime} min read` : 'Editorial',
     `${article.views || 0} views`,
   ].filter(Boolean);
 
   const avatarSrc = resolveMediaSrc(settings?.logo);
-  const promoImages = [
-    heroSrc,
-    ...storyMedia
-      .filter((item) => item.type !== 'video')
-      .map((item) => resolveMediaSrc(item.url))
-      .filter(Boolean),
-  ]
-    .filter((src, i, arr) => Boolean(src) && arr.indexOf(src) === i)
-    .slice(0, 5);
 
   return (
     <div className="page-wrap">
@@ -99,7 +90,23 @@ export default async function Page({ params }: Props) {
             <img className="article-hero-img" src={heroSrc} alt={article.title} />
           </figure>
         ) : null}
-        <p className="article-meta-line">{metaParts.join(' • ')}</p>
+        <p className="article-meta-line">
+          {authorName ? (
+            <>
+              By{' '}
+              {authorSlug ? (
+                <Link className="article-meta-author-link" href={`/author/${authorSlug}`}>
+                  {authorName}
+                </Link>
+              ) : (
+                authorName
+              )}
+              {trailingMeta.length > 0 ? ` • ${trailingMeta.join(' • ')}` : ''}
+            </>
+          ) : (
+            trailingMeta.join(' • ')
+          )}
+        </p>
         <div className={`article-layout${hasMediaSidebar ? ' article-layout--with-sidebar' : ''}`}>
           <div className="article-main">
             <section
@@ -108,18 +115,14 @@ export default async function Page({ params }: Props) {
                 __html: prepareArticleBodyHtml(article.content) || '<p>Content unavailable.</p>',
               }}
             />
+            <InstagramEmbedHydrator
+              profileUrl={settings?.socialLinks?.instagram}
+              avatarSrc={avatarSrc || null}
+            />
           </div>
           {hasMediaSidebar ? <ArticleMediaSidebar media={storyMedia} storyTitle={article.title} /> : null}
         </div>
       </article>
-
-      <InstagramPromoCard
-        profileUrl={settings?.socialLinks?.instagram}
-        postUrl={article.instagramPostUrl}
-        avatarSrc={avatarSrc || null}
-        images={promoImages}
-        previewAlt={article.title}
-      />
 
       <section className="section related-section">
         <div className="section-head">

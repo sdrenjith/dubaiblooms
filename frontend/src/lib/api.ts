@@ -99,6 +99,9 @@ export interface AuthUser {
   name: string;
   email: string;
   role: 'admin' | 'editor' | string;
+  slug?: string;
+  bio?: string;
+  avatar?: string;
 }
 
 export interface AdminUserRow {
@@ -106,6 +109,9 @@ export interface AdminUserRow {
   name: string;
   email: string;
   role: string;
+  slug?: string;
+  bio?: string;
+  avatar?: string;
   createdAt?: string;
 }
 
@@ -134,7 +140,14 @@ export const authApi = {
 
   updateMyProfile: async (
     token: string,
-    payload: { name?: string; currentPassword?: string; newPassword?: string }
+    payload: {
+      name?: string;
+      slug?: string;
+      bio?: string;
+      avatar?: string;
+      currentPassword?: string;
+      newPassword?: string;
+    }
   ): Promise<AuthUser> => {
     const { data } = await api.patch<ApiResponse<{ user: AuthUser }>>('/auth/me', payload, {
       headers: { Authorization: `Bearer ${token}` },
@@ -481,7 +494,6 @@ export const adminApi = {
       isFeatured?: boolean;
       media?: StoryMediaItem[];
       seo?: Article['seo'];
-      instagramPostUrl?: string;
     },
     token: string
   ): Promise<Article> => {

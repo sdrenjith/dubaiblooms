@@ -19,7 +19,7 @@ export const getArticles = async (req: Request, res: Response): Promise<void> =>
     const [articles, total] = await Promise.all([
       Article.find(filter)
         .populate('category', 'name slug image')
-        .populate('author', 'name')
+        .populate('author', 'name slug avatar')
         .sort({ publishedAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -41,7 +41,7 @@ export const getFeaturedArticles = async (_req: Request, res: Response): Promise
   try {
     const articles = await Article.find({ isPublished: true, isFeatured: true })
       .populate('category', 'name slug image')
-      .populate('author', 'name')
+      .populate('author', 'name slug avatar')
       .sort({ publishedAt: -1 })
       .limit(14)
       .lean();
@@ -60,7 +60,7 @@ export const getArticleBySlug = async (req: Request, res: Response): Promise<voi
       { new: true }
     )
       .populate('category', 'name slug image')
-      .populate('author', 'name');
+      .populate('author', 'name slug avatar');
 
     if (!article) {
       res.status(404).json({ message: 'Article not found' });
@@ -103,7 +103,7 @@ export const getArticlesByCategory = async (req: Request, res: Response): Promis
     const [articles, total] = await Promise.all([
       Article.find(filter)
         .populate('category', 'name slug image')
-        .populate('author', 'name')
+        .populate('author', 'name slug avatar')
         .sort({ publishedAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -138,7 +138,7 @@ export const searchArticles = async (req: Request, res: Response): Promise<void>
       ],
     })
       .populate('category', 'name slug image')
-      .populate('author', 'name')
+      .populate('author', 'name slug avatar')
       .sort({ publishedAt: -1 })
       .limit(20)
       .lean();
@@ -154,7 +154,7 @@ export const createArticle = async (req: AuthRequest, res: Response): Promise<vo
   try {
     const article = await Article.create({ ...req.body, author: req.user!._id });
     await article.populate('category', 'name slug image');
-    await article.populate('author', 'name');
+    await article.populate('author', 'name slug avatar');
     res.status(201).json({ success: true, data: article });
   } catch (error: any) {
     if (error.code === 11000) {
@@ -188,7 +188,7 @@ export const updateArticle = async (req: AuthRequest, res: Response): Promise<vo
       runValidators: true,
     })
       .populate('category', 'name slug image')
-      .populate('author', 'name');
+      .populate('author', 'name slug avatar');
 
     if (!article) {
       res.status(404).json({ message: 'Article not found' });
@@ -227,7 +227,7 @@ export const getAllArticlesAdmin = async (req: AuthRequest, res: Response): Prom
     const [articles, total] = await Promise.all([
       Article.find()
         .populate('category', 'name slug image')
-        .populate('author', 'name')
+        .populate('author', 'name slug avatar')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -258,7 +258,7 @@ export const getDashboardStats = async (_req: AuthRequest, res: Response): Promi
 
     const recentArticles = await Article.find()
       .populate('category', 'name slug image')
-      .populate('author', 'name')
+      .populate('author', 'name slug avatar')
       .sort({ createdAt: -1 })
       .limit(5)
       .lean();

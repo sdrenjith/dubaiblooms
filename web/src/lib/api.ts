@@ -1,4 +1,4 @@
-import type { ApiResponse, Article, Category, PaginatedArticlesResult, Settings } from '@/types/api';
+import type { ApiResponse, Article, Author, Category, PaginatedArticlesResult, Settings } from '@/types/api';
 
 function serverApiBaseUrl(): string {
   const raw = process.env.API_URL?.trim() || 'http://127.0.0.1:5000/api';
@@ -84,6 +84,25 @@ export const contentApi = {
     const params = new URLSearchParams({ page: String(page), limit: String(limit) });
     const data = await getApi<{ articles: Article[] }>(`/articles/category/${encodeURIComponent(slug)}?${params}`);
     return {
+      articles: data?.data?.articles ?? [],
+      pagination: data?.pagination || { page: 1, limit, total: 0, pages: 1 },
+    };
+  },
+  authorBySlug: async (
+    slug: string,
+    page = 1,
+    limit = 24
+  ): Promise<{
+    author: Author | null;
+    articles: Article[];
+    pagination: PaginatedArticlesResult['pagination'];
+  }> => {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    const data = await getApi<{ author: Author; articles: Article[] }>(
+      `/authors/${encodeURIComponent(slug)}?${params}`
+    );
+    return {
+      author: data?.data?.author ?? null,
       articles: data?.data?.articles ?? [],
       pagination: data?.pagination || { page: 1, limit, total: 0, pages: 1 },
     };

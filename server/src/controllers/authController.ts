@@ -2,8 +2,55 @@ import crypto from 'crypto';
 import { Request, Response } from 'express';
 import jwt, { type SignOptions } from 'jsonwebtoken';
 import User from '../models/User.js';
+import type { IUser } from '../models/User.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { env, getPublicBaseUrl } from '../config/env.js';
+import { generateSlug, isValidSlug, normalizeSlug } from '../utils/generateSlug.js';
+
+const PUBLIC_PROFILE_SELECT = 'name email role slug bio avatar createdAt';
+
+async function allocateUniqueSlug(base: string, excludeId?: unknown): Promise<string> {
+  let candidate = base;
+  let n = 1;
+  while (await User.exists({ slug: candidate, ...(excludeId ? { _id: { $ne: excludeId } } : {}) })) {
+    n += 1;
+    candidate = `${base}-${n}`.slice(0, 120).replace(/-+$/g, '');
+  }
+  return candidate;
+}
+
+function slugBaseFromName(name: string, email: string): string {
+  const fromName = generateSlug(name);
+  if (isValidSlug(fromName)) {
+    return fromName;
+  }
+  const fromEmail = generateSlug(email.split('@')[0] || '');
+  if (isValidSlug(fromEmail)) {
+    return fromEmail;
+  }
+  return 'author';
+}
+
+function serializeUser(user: {
+  _id: unknown;
+  name: string;
+  email: string;
+  role: string;
+  slug?: string;
+  bio?: string;
+  avatar?: string;
+}) {
+  return {
+    _id: String(user._id),
+    id: String(user._id),
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    slug: user.slug || '',
+    bio: user.bio || '',
+    avatar: user.avatar || '',
+  };
+}
 
 const generateToken = (id: string): string => {
   const options: SignOptions = {
@@ -44,7 +91,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     res.json({
       success: true,
       data: {
-        user: { id: user._id, name: user.name, email: user.email, role: user.role },
+        user: serializeUser(user),
         token,
       },
     });
@@ -81,10 +128,11 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
       return;
     }
 
-    const user = await User.create({ name, email, password, role });
+    const slug = await allocateUniqueSlug(slugBaseFromName(name, email));
+    const user = await User.create({ name, email, password, role, slug, bio: '', avatar: '' });
     res.status(201).json({
       success: true,
-      data: { user: { id: user._id, name: user.name, email: user.email, role: user.role } },
+      data: { user: serializeUser(user) },
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -98,7 +146,8 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
       res.status(401).json({ message: 'Not authorized' });
       return;
     }
-    res.json({ success: true, data: { user } });
+    res.set('Cache-Control', 'no-store');
+    res.json({ success: true, data: { user: serializeUser(user) } });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -106,7 +155,7 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
 
 export const listUsers = async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const users = await User.find().sort({ createdAt: -1 }).select('name email role createdAt').lean();
+    const users = await User.find().sort({ createdAt: -1 }).select(PUBLIC_PROFILE_SELECT).lean();
     res.json({
       success: true,
       data: users.map((u) => ({
@@ -114,6 +163,9 @@ export const listUsers = async (_req: AuthRequest, res: Response): Promise<void>
         name: u.name,
         email: u.email,
         role: u.role,
+        slug: u.slug || '',
+        bio: u.bio || '',
+        avatar: u.avatar || '',
         createdAt: u.createdAt,
       })),
     });
@@ -121,6 +173,90 @@ export const listUsers = async (_req: AuthRequest, res: Response): Promise<void>
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+type ProfileFieldsBody = {
+  name?: string;
+  slug?: string;
+  bio?: string;
+  avatar?: string;
+};
+
+function parseProfileFields(body: ProfileFieldsBody): {
+  name?: string;
+  slugProvided: boolean;
+  slugRaw?: string;
+  bioProvided: boolean;
+  bio?: string;
+  avatarProvided: boolean;
+  avatar?: string;
+  error?: string;
+} {
+  const nameRaw = body.name;
+  const name = nameRaw !== undefined ? String(nameRaw).trim() : undefined;
+  const slugProvided = body.slug !== undefined;
+  const bioProvided = body.bio !== undefined;
+  const avatarProvided = body.avatar !== undefined;
+  const slugRaw = slugProvided ? normalizeSlug(String(body.slug || '')) : undefined;
+  const bio = bioProvided ? String(body.bio ?? '').slice(0, 4000) : undefined;
+  const avatar = avatarProvided ? String(body.avatar ?? '').trim() : undefined;
+
+  if (name !== undefined && !name) {
+    return { slugProvided, bioProvided, avatarProvided, error: 'Name cannot be empty' };
+  }
+  if (slugProvided && slugRaw !== undefined && slugRaw.length > 0 && !isValidSlug(slugRaw)) {
+    return {
+      name,
+      slugProvided,
+      slugRaw,
+      bioProvided,
+      bio,
+      avatarProvided,
+      avatar,
+      error: 'Author slug must use lowercase letters, numbers, and hyphens',
+    };
+  }
+  if (slugProvided && !slugRaw) {
+    return {
+      name,
+      slugProvided,
+      slugRaw,
+      bioProvided,
+      bio,
+      avatarProvided,
+      avatar,
+      error: 'Author slug cannot be empty',
+    };
+  }
+
+  return { name, slugProvided, slugRaw, bioProvided, bio, avatarProvided, avatar };
+}
+
+async function applyProfileFields(
+  user: IUser,
+  fields: ReturnType<typeof parseProfileFields>
+): Promise<string | null> {
+  if (fields.name !== undefined) {
+    user.name = fields.name;
+  }
+
+  if (fields.slugProvided && fields.slugRaw) {
+    const taken = await User.exists({ slug: fields.slugRaw, _id: { $ne: user._id } });
+    if (taken) {
+      return 'That author slug is already in use';
+    }
+    user.slug = fields.slugRaw;
+  }
+
+  if (fields.bioProvided && fields.bio !== undefined) {
+    user.bio = fields.bio;
+  }
+
+  if (fields.avatarProvided && fields.avatar !== undefined) {
+    user.avatar = fields.avatar;
+  }
+
+  return null;
+}
 
 export const updateMyProfile = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -130,17 +266,18 @@ export const updateMyProfile = async (req: AuthRequest, res: Response): Promise<
       return;
     }
 
-    const body = req.body as { name?: string; currentPassword?: string; newPassword?: string };
-    const nameRaw = body.name;
-    const name = nameRaw !== undefined ? String(nameRaw).trim() : undefined;
-    const newPassword = body.newPassword !== undefined ? String(body.newPassword) : '';
-    const currentPassword = body.currentPassword !== undefined ? String(body.currentPassword) : '';
-
-    if (name !== undefined && !name) {
-      res.status(400).json({ message: 'Name cannot be empty' });
+    const body = req.body as ProfileFieldsBody & {
+      currentPassword?: string;
+      newPassword?: string;
+    };
+    const fields = parseProfileFields(body);
+    if (fields.error) {
+      res.status(400).json({ message: fields.error });
       return;
     }
 
+    const newPassword = body.newPassword !== undefined ? String(body.newPassword) : '';
+    const currentPassword = body.currentPassword !== undefined ? String(body.currentPassword) : '';
     const wantsPasswordChange = newPassword.length > 0;
     if (wantsPasswordChange && newPassword.length < 6) {
       res.status(400).json({ message: 'New password must be at least 6 characters' });
@@ -166,32 +303,36 @@ export const updateMyProfile = async (req: AuthRequest, res: Response): Promise<
       user.password = newPassword;
     }
 
-    if (name !== undefined) {
-      user.name = name;
+    const profileError = await applyProfileFields(user, fields);
+    if (profileError) {
+      res.status(400).json({ message: profileError });
+      return;
     }
 
-    if (!wantsPasswordChange && name === undefined) {
+    if (
+      !wantsPasswordChange &&
+      fields.name === undefined &&
+      !fields.slugProvided &&
+      !fields.bioProvided &&
+      !fields.avatarProvided
+    ) {
       res.status(400).json({ message: 'Nothing to update' });
       return;
     }
 
     await user.save();
 
-    const fresh = await User.findById(userId).select('-password').lean();
+    const fresh = await User.findById(userId).select(PUBLIC_PROFILE_SELECT).lean();
     if (!fresh) {
       res.status(500).json({ message: 'Could not load updated user' });
       return;
     }
 
+    res.set('Cache-Control', 'no-store');
     res.json({
       success: true,
       data: {
-        user: {
-          _id: String(fresh._id),
-          name: fresh.name,
-          email: fresh.email,
-          role: fresh.role,
-        },
+        user: serializeUser(fresh),
       },
     });
   } catch {

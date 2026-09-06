@@ -13,9 +13,11 @@ import errorHandler from './middleware/errorHandler.js';
 import { createSpaFallback } from './middleware/spaFallback.js';
 import authRoutes from './routes/authRoutes.js';
 import articleRoutes from './routes/articleRoutes.js';
+import authorRoutes from './routes/authorRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import { ensureAuthorProfiles } from './seed/ensureAuthorProfiles.js';
 import { generateSitemap } from './utils/generateSitemap.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -90,6 +92,7 @@ if (!fs.existsSync(uploadsDir)) {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/articles', articleRoutes);
+app.use('/api/authors', authorRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/upload', uploadRoutes);
@@ -146,6 +149,11 @@ function registerGracefulShutdown(server: ReturnType<typeof app.listen>): void {
 
 const start = async () => {
   await connectDB();
+  try {
+    await ensureAuthorProfiles();
+  } catch (err) {
+    console.error('ensureAuthorProfiles failed', err);
+  }
 
   const server = app.listen(PORT, () => {
     console.log(`\nServer running on http://localhost:${PORT}`);

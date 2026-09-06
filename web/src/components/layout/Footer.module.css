@@ -43,9 +43,9 @@
 .subscribePopup .popupHeadline {
   margin: 0.35rem 0 0.5rem;
   max-width: none;
-  color: #12100e;
-  font-family: var(--font-display);
-  font-size: clamp(1.2rem, 2.6vw, 1.55rem);
+  color: #000000;
+  font-family: var(--font-heading);
+  font-size: var(--text-h3);
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: 0.02em;
@@ -55,7 +55,7 @@
 
 .subscribePopup .popupSubtext {
   margin: 0;
-  color: #5c574e;
+  color: #000000;
   font-size: 0.9375rem;
   line-height: 1.55;
   font-family: var(--font-body);
@@ -118,7 +118,7 @@
 }
 
 .popupBrandPrimary {
-  color: #111216;
+  color: #000000;
 }
 
 .popupBrandAccent {
@@ -238,16 +238,16 @@
 .newsletter h2 {
   margin-top: 0.65rem;
   max-width: 26ch;
-  font-size: clamp(1.2rem, 1.8vw, 1.6rem);
-  font-family: var(--font-display);
-  color: var(--gold-strong);
+  font-size: var(--text-h2);
+  font-family: var(--font-heading);
+  color: var(--text);
   font-weight: 700;
 }
 
 .subscribeMessage {
   margin-top: 0.5rem;
   font-size: 0.84rem;
-  color: #6b7684;
+  color: #000000;
 }
 
 .form {
@@ -262,7 +262,7 @@
   padding: 0 0.8rem;
   border: 1px solid #c6ccd5;
   background: #ffffff;
-  color: #222a34;
+  color: #000000;
 }
 
 .form button {
@@ -287,19 +287,20 @@
 .grid h3,
 .grid h4 {
   margin-bottom: 0.7rem;
-  color: var(--gold-strong);
 }
 
 .grid h3 {
-  font-family: var(--font-display);
-  font-size: 1.35rem;
+  font-family: var(--font-heading);
+  font-size: var(--text-h3);
   font-weight: 700;
+  color: var(--text);
 }
 
 .grid h4 {
   font-size: 0.76rem;
   text-transform: uppercase;
   letter-spacing: 0.14em;
+  color: var(--gold-strong);
 }
 
 .grid p,
@@ -338,9 +339,14 @@
   justify-content: center;
   border: 1px solid #bfc7d2;
   background: #ffffff;
-  color: #6c7785;
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
+  color: #000000;
+}
+
+.socialIcon {
+  width: 16px;
+  height: 16px;
+  display: block;
+  flex-shrink: 0;
 }
 
 .socials a:hover {
@@ -356,7 +362,7 @@
   box-sizing: border-box;
   border-top: 1px solid rgba(185, 146, 63, 0.18);
   padding-top: 1.1rem;
-  color: #8a95a3;
+  color: #000000;
   font-size: 0.8rem;
   display: flex;
   flex-wrap: wrap;
@@ -365,11 +371,11 @@
 }
 
 .legalSep {
-  color: #b0b8c2;
+  color: #000000;
 }
 
 .legalLink {
-  color: #8a95a3;
+  color: #000000;
   text-decoration: none;
   border-bottom: 1px solid rgba(185, 146, 63, 0.35);
 }

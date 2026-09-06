@@ -27,6 +27,9 @@ export interface Category {
 export interface Author {
   _id: string;
   name: string;
+  slug?: string;
+  bio?: string;
+  avatar?: string;
 }
 
 export interface StoryMediaItem {
@@ -43,8 +46,6 @@ export interface Article {
   excerpt: string;
   content: string;
   featuredImage?: string;
-  /** Optional Instagram post URL for the under-article promo card. */
-  instagramPostUrl?: string;
   media?: StoryMediaItem[];
   category: Category;
   author?: Author;

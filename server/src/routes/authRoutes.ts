@@ -1,5 +1,13 @@
 import { Router } from 'express';
-import { login, register, getMe, listUsers, updateMyProfile, requestPasswordReset, resetPasswordWithToken } from '../controllers/authController.js';
+import {
+  login,
+  register,
+  getMe,
+  listUsers,
+  updateMyProfile,
+  requestPasswordReset,
+  resetPasswordWithToken,
+} from '../controllers/authController.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 
 const router = Router();

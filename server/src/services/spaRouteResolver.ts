@@ -1,5 +1,6 @@
 import Article from '../models/Article.js';
 import Category from '../models/Category.js';
+import User from '../models/User.js';
 import { isValidSlug } from '../utils/generateSlug.js';
 
 export type SpaRouteStatus = 200 | 404;
@@ -29,6 +30,19 @@ export async function resolveSpaRoute(pathname: string): Promise<SpaRouteStatus>
   }
 
   const segments = path.split('/').filter(Boolean);
+
+  if (path === '/privacy-policy') {
+    return 200;
+  }
+
+  if (segments[0] === 'author' && segments.length === 2) {
+    const slug = segments[1]!;
+    if (!isValidSlug(slug)) {
+      return 404;
+    }
+    const author = await User.findOne({ slug }).select('_id').lean();
+    return author ? 200 : 404;
+  }
 
   if (segments[0] === 'category' && segments.length === 2) {
     const slug = segments[1]!;

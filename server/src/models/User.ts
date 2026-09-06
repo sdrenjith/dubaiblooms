@@ -6,6 +6,12 @@ export interface IUser extends Document {
   email: string;
   password: string;
   role: 'admin' | 'editor';
+  /** Public profile URL segment: /author/<slug> */
+  slug?: string;
+  /** Short public bio (plain text or light HTML). */
+  bio?: string;
+  /** Public profile image URL (upload path or absolute). */
+  avatar?: string;
   passwordResetToken?: string;
   passwordResetExpires?: Date;
   createdAt: Date;
@@ -19,6 +25,16 @@ const userSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true, minlength: 6 },
     role: { type: String, enum: ['admin', 'editor'], default: 'editor' },
+    slug: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      sparse: true,
+      unique: true,
+      maxlength: 120,
+    },
+    bio: { type: String, default: '', maxlength: 4000 },
+    avatar: { type: String, default: '', trim: true },
     passwordResetToken: { type: String, select: false },
     passwordResetExpires: { type: Date, select: false },
   },

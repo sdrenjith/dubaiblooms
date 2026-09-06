@@ -115,6 +115,12 @@ export function AdminStoryEditorsList({
                   value={a.content ?? ''}
                   onChange={(e) => updateStoryField(a._id, { content: e.target.value })}
                 />
+                <span className="admin-hint">
+                  Instagram mid-article:{' '}
+                  <code>{`<div class="db-instagram-embed" data-instagram-url="https://www.instagram.com/p/XXXX/"></div>`}</code>
+                  {' '}
+                  (shows that post, not the featured image)
+                </span>
               </label>
               <label className="admin-story-field">
                 Featured image URL
@@ -124,17 +130,6 @@ export function AdminStoryEditorsList({
                   value={a.featuredImage || ''}
                   onChange={(e) => updateStoryField(a._id, { featuredImage: e.target.value })}
                 />
-              </label>
-              <label className="admin-story-field">
-                Instagram post URL
-                <input
-                  type="url"
-                  spellCheck={false}
-                  value={a.instagramPostUrl || ''}
-                  onChange={(e) => updateStoryField(a._id, { instagramPostUrl: e.target.value })}
-                  placeholder="https://www.instagram.com/p/… (optional)"
-                />
-                <span className="admin-hint">Leave empty to use the site-wide Instagram account link.</span>
               </label>
               <div className="admin-story-field" style={{ gridColumn: '1 / -1' }}>
                 <AdminStoryMediaEditor

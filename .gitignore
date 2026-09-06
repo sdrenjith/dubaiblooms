@@ -144,6 +144,9 @@ vite.config.ts.timestamp-*
 
 # --- Dubai Blooms (Node / Vite / Express / Mongo) ---
 
+# Firecrawl CLI research scrapes (local agent artifacts)
+.firecrawl/
+
 # Generic build output dirs (besides build/Release above)
 build/
 

@@ -466,6 +466,9 @@ const seed = async () => {
       email: 'admin@dubaiblooms.com',
       password: 'admin123',
       role: 'admin',
+      slug: 'admin',
+      bio: 'Editor at Dubai Blooms covering news, culture, food, and city life across the UAE.',
+      avatar: '',
     });
     console.log('👤 Admin user created (admin@dubaiblooms.com / admin123)');
 

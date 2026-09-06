@@ -28,6 +28,44 @@ function mapsSearchUrl(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address.trim())}`;
 }
 
+function SocialIcon({ name }: { name: string }) {
+  const iconProps = {
+    className: styles.socialIcon,
+    viewBox: '0 0 24 24',
+    'aria-hidden': true as const,
+    fill: 'currentColor',
+  };
+
+  switch (name) {
+    case 'instagram':
+      return (
+        <svg {...iconProps}>
+          <path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7zm11.25 1.75a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5zM12 7.5A4.5 4.5 0 1 1 12 16.5 4.5 4.5 0 0 1 12 7.5zm0 2a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z" />
+        </svg>
+      );
+    case 'facebook':
+      return (
+        <svg {...iconProps}>
+          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+        </svg>
+      );
+    case 'twitter':
+      return (
+        <svg {...iconProps}>
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+        </svg>
+      );
+    case 'linkedin':
+      return (
+        <svg {...iconProps}>
+          <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a-2.063 2.063 0 1 1 0-4.127 2.063 2.063 0 0 1 0 4.127zM7.119 20.452H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
 export function Footer() {
   const { settings, categories } = useSiteData();
   const categoriesForNav = useMemo(
@@ -62,21 +100,21 @@ export function Footer() {
 
   const socialLinks = useMemo(() => {
     const ig = settings?.socialLinks?.instagram?.trim() || DEFAULT_INSTAGRAM;
-    const entries: { key: string; label: string; abbr: string; href: string }[] = [];
+    const entries: { key: string; label: string; href: string }[] = [];
     if (isHttpUrl(ig)) {
-      entries.push({ key: 'instagram', label: 'Instagram', abbr: 'IG', href: ig });
+      entries.push({ key: 'instagram', label: 'Instagram', href: ig });
     }
     const fb = settings?.socialLinks?.facebook?.trim();
     if (isHttpUrl(fb)) {
-      entries.push({ key: 'facebook', label: 'Facebook', abbr: 'FB', href: fb });
+      entries.push({ key: 'facebook', label: 'Facebook', href: fb });
     }
     const tw = settings?.socialLinks?.twitter?.trim();
     if (isHttpUrl(tw)) {
-      entries.push({ key: 'twitter', label: 'Twitter', abbr: 'X', href: tw });
+      entries.push({ key: 'twitter', label: 'X', href: tw });
     }
     const li = settings?.socialLinks?.linkedin?.trim();
     if (isHttpUrl(li)) {
-      entries.push({ key: 'linkedin', label: 'LinkedIn', abbr: 'IN', href: li });
+      entries.push({ key: 'linkedin', label: 'LinkedIn', href: li });
     }
     return entries;
   }, [settings?.socialLinks]);
@@ -225,7 +263,7 @@ export function Footer() {
             <div className={styles.socials}>
               {socialLinks.map((s) => (
                 <a key={s.key} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label}>
-                  {s.abbr}
+                  <SocialIcon name={s.key} />
                 </a>
               ))}
             </div>
